@@ -1,6 +1,26 @@
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-db = SQLAlchemy()
+from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
+from .extensions import db
+
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.String(100), nullable=False)
+
+    @property
+    def password(self):
+        raise AttributeError('password is not a readable attribute')
+
+    @password.setter
+    def password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def verify_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -35,15 +55,6 @@ class Project(db.Model):
     name = db.Column(db.String(255), nullable=False)
     funding_body = db.Column(db.String(255), nullable=True)
 
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(255), unique=True, nullable=False)
-    password = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.String(100), nullable=False)
-
-    # Relationships
-    owned_products = db.relationship('Product', backref='owner', foreign_keys=[Product.owner_id])
-    managed_loans = db.relationship('Loan', backref='manager', foreign_keys='Loan.manager_id')
 
 class Loan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
