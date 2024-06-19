@@ -1,11 +1,16 @@
 from flask import Flask
 from .extensions import db, migrate, login_manager
 from .views import main_blueprint
+from .category_routes import category_blueprint
+
 from .models import User
 
-def create_app():
+def create_app(config_name=None):
     app = Flask(__name__, template_folder='./templates', static_folder='./static')
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1234@localhost:5432/Net4UInventory'
+    if config_name == 'testing':
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1234@localhost:5432/Net4UInventory_test'
+    else:
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1234@localhost:5432/Net4UInventory'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = 'your-secret-key'  # Cambia questa chiave in produzione
 
@@ -20,7 +25,7 @@ def create_app():
         return User.query.get(int(user_id))
 
     app.register_blueprint(main_blueprint)
-
+    app.register_blueprint(category_blueprint, url_prefix='/category')
     from . import models  # Assicurati di importare i modelli dopo l'inizializzazione di db
 
     return app
