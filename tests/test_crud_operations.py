@@ -4,14 +4,14 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import unittest
 from app import create_app, db
-from app.models import Category, Location, Project, User, Product, Loan
-from app.crud_operations import create_category, delete_category, update_category
-from app.crud_operations import create_location, delete_location, update_location
-from app.crud_operations import create_project, delete_project, update_project
-from app.crud_operations import create_user, delete_user, update_user
-from app.crud_operations import create_product, delete_product, update_product
-from app.crud_operations import create_loan, delete_loan, update_loan
-from app.crud_operations import add_manager_to_product, remove_manager_from_product
+from app.models import Category, Location, Project, User, Product, Loan, ProductManager
+from app.crud.user_crud import create_user, delete_user, update_user
+from app.crud.product_crud import create_product, delete_product, update_product
+from app.crud.loan_crud import create_loan, delete_loan, update_loan
+from app.crud.category_crud import create_category, update_category, delete_category
+from app.crud.manager_crud import add_manager_to_product, remove_manager_from_product
+from app.crud.location_crud import create_location, update_location, delete_location
+from app.crud.project_crud import create_project, update_project, delete_project
 from datetime import datetime, timedelta
 
 class TestCRUDOperations(unittest.TestCase):

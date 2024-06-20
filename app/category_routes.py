@@ -1,5 +1,5 @@
 from flask import Blueprint, request, redirect, url_for, render_template, flash
-from .crud_operations import create_category, update_category, delete_category
+from .crud.category_crud import create_category, update_category, delete_category
 category_blueprint = Blueprint('category', __name__)
 @category_blueprint.route('/add_category', methods=['POST'])
 def add_category():
