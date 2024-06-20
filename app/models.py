@@ -31,10 +31,12 @@ class Product(db.Model):
     project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
     owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-
-    # Relationships
+    # Existing relationships
     categories = db.relationship('Category', secondary='product_category', backref='products')
     loans = db.relationship('Loan', backref='product')
+    # New relationship for managers
+    managers = db.relationship('User', secondary='product_manager', backref='manages_products')
+
 
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -54,6 +56,14 @@ class Project(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False)
     funding_body = db.Column(db.String(255), nullable=True)
+
+class ProductManager(db.Model):
+    __tablename__ = 'product_manager'
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    # Relationships
+    product = db.relationship('Product', backref=db.backref('manager_associations', cascade='all, delete-orphan'))
+    user = db.relationship('User', backref=db.backref('managed_products', cascade='all, delete-orphan'))
 
 
 class Loan(db.Model):
