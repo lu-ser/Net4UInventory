@@ -1,5 +1,6 @@
-from .models import Category, Location, Project
+from .models import Category, Location, Project, Product, User
 from .extensions import db
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # CRUD for Category
 def create_category(name):
@@ -69,6 +70,65 @@ def delete_project(project_id):
     project = Project.query.get(project_id)
     if project:
         db.session.delete(project)
+        db.session.commit()
+        return True
+    return False
+
+
+# CRUD for User
+
+def create_user(email, password, role):
+    new_user = User(email=email, password=password, role=role)
+    db.session.add(new_user)
+    db.session.commit()
+    return new_user
+
+def update_user(user_id, email=None, password=None, role=None):
+    user = User.query.get(user_id)
+    if user:
+        if email:
+            user.email = email
+        if password:
+            user.password = password  # Il setter aggiornerà il hash della password
+        if role:
+            user.role = role
+        db.session.commit()
+        return user
+    return None
+
+def delete_user(user_id):
+    user = User.query.get(user_id)
+    if user:
+        db.session.delete(user)
+        db.session.commit()
+        return True
+    return False
+
+# CRUD for Product
+
+def create_product(name, unique_code, description, location_id, project_id, quantity, owner_id, category_ids):
+    new_product = Product(name=name, unique_code=unique_code, description=description,
+                          location_id=location_id, project_id=project_id, quantity=quantity, owner_id=owner_id)
+    db.session.add(new_product)
+    db.session.flush()  # Flush per ottenere l'id prima del commit se necessario
+    for category_id in category_ids:
+        new_product.categories.append(Category.query.get(category_id))
+    db.session.commit()
+    return new_product
+
+def update_product(product_id, **kwargs):
+    product = Product.query.get(product_id)
+    if product:
+        for key, value in kwargs.items():
+            setattr(product, key, value)  # Aggiorna i campi in base ai kwargs forniti
+        db.session.commit()
+        return product
+    return None
+
+def delete_product(product_id):
+    product = Product.query.get(product_id)
+    if product:
+        db.session.delete(product)
         db.session.commit()
         return True
     return False
