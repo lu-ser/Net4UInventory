@@ -12,6 +12,8 @@ from app.crud.category_crud import create_category, update_category, delete_cate
 from app.crud.manager_crud import add_manager_to_product, remove_manager_from_product
 from app.crud.location_crud import create_location, update_location, delete_location
 from app.crud.project_crud import create_project, update_project, delete_project
+from app.crud.category_product_crud import add_category_to_product, remove_category_from_product
+
 from datetime import datetime, timedelta
 
 class TestCRUDOperations(unittest.TestCase):
@@ -44,6 +46,10 @@ class TestCRUDOperations(unittest.TestCase):
         # Creazione del prodotto con unique_code unico
         unique_product_code = f"P{uuid.uuid4()}"[:15]  # Assicurati che sia unico
         self.product = create_product("Widget", unique_product_code, "A useful widget", self.location.id, self.project.id, 10, self.borrower.id, [])
+        self.category1 = Category(name="Electronics")
+        self.category2 = Category(name="Gadgets")
+        db.session.add(self.category1)
+        db.session.add(self.category2)
         db.session.add(self.product)
         db.session.commit()
 
@@ -245,6 +251,22 @@ class TestCRUDOperations(unittest.TestCase):
         self.assertTrue(result)
         self.assertIsNone(Loan.query.get(loan.id))
 
+    ################################################################
+    ########################TEST Category_product #########################
+
+    def test_add_category_to_product(self):
+        """Test adding a category to a product."""
+        result = add_category_to_product(self.product.id, self.category1.id)
+        self.assertTrue(result)
+        self.assertIn(self.category1, self.product.categories)
+
+    def test_remove_category_from_product(self):
+        """Test removing a category from a product."""
+        add_category_to_product(self.product.id, self.category1.id)
+        result = remove_category_from_product(self.product.id, self.category1.id)
+        self.assertTrue(result)
+        self.assertNotIn(self.category1, self.product.categories)
+        
 if __name__ == '__main__':
     unittest.main(verbosity=2)
     

@@ -8,7 +8,6 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(255), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(100), nullable=False)
-
     @property
     def password(self):
         raise AttributeError('password is not a readable attribute')
@@ -40,7 +39,7 @@ class Product(db.Model):
 
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
 
 class ProductCategory(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'), primary_key=True)
@@ -74,7 +73,7 @@ class Loan(db.Model):
     start_date = db.Column(db.DateTime, default=datetime.utcnow)
     end_date = db.Column(db.DateTime, nullable=False)
     status = db.Column(db.String(100), default='pending')  # Example: pending, approved, denied
-
+    quantity = db.Column(db.Integer, nullable=False)
     # Requests for loan extension
     extension_requested = db.Column(db.Boolean, default=False)
     new_end_date = db.Column(db.DateTime, nullable=True)
