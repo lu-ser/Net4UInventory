@@ -9,7 +9,7 @@ def search_products_by_category(category_id):
 def search_available_products():
     return Product.query.filter(Product.quantity > 0).all()
 
-def search_loan_history(user_id):
+def search_loan_history(user_id): 
     return Loan.query.filter_by(borrower_id=user_id).order_by(Loan.start_date.desc()).all()
 
 #Automazione del Processo di Restituzione
