@@ -236,17 +236,21 @@
                                                        class="rounded profile-img img-fluid avatar-70">
                                               </div>
                                               <div class="p-3">
-                                                  {% if user is defined %}
-                                                        <h5 class="mb-1">{{ user.u_name }} {{ user.u_surname }}</h5>
-                                                  {% else %}
-                                                        <h5 class="mb-1">Welcome</h5>
+                                                {% if current_user.is_authenticated %}
+                                                    <h5 class="mb-1">{{ current_user.name }} {{ current_user.surname }}</h5>  <!-- Assumendo che gli attributi si chiamino name e surname -->
+                                                {% else %}
+                                                    <h5 class="mb-1">Welcome</h5>
+                                                {% endif %}
+                                                <div class="d-flex align-items-center justify-content-center mt-3">
+                                                    {% if current_user.is_authenticated %}
+                                                        <a href="user_profile" class="btn border mr-2">Profile</a>
+                                                        <a href="/requestsList" class="btn border mr-2">Requests</a>
+                                                        <a href="/logout" class="btn border">Sign Out</a>
+                                                    {% else %}
+                                                        <a href="/login" class="btn border">Sign In</a>  <!-- Assumendo che esista una pagina di login -->
                                                     {% endif %}
-                                                  <div class="d-flex align-items-center justify-content-center mt-3">
-                                                      <a href="user_profile" class="btn border mr-2">Profile</a>
-                                                      <a href="/requestsList" class="btn border mr-2">Requests</a>
-                                                      <a href="/log-in?logout=1&message=11" class="btn border">Sign Out</a>
-                                                  </div>
-                                              </div>
+                                                </div>
+                                            </div>                                            
                                           </div>
                                       </div>
                                   </div>
