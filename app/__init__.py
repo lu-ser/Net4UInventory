@@ -4,6 +4,9 @@ from .views import main_blueprint
 from .category_routes import category_blueprint
 
 from .models import User
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 def create_app(config_name=None):
     app = Flask(__name__, template_folder='./templates', static_folder='./static')
@@ -12,7 +15,7 @@ def create_app(config_name=None):
     else:
         app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1234@localhost:5432/Net4UInventory'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = 'your-secret-key'  # Cambia questa chiave in produzione
+    app.config['SECRET_KEY'] = 'net4u'  # Cambia questa chiave in produzione
 
     db.init_app(app)
     migrate.init_app(app, db)
@@ -20,9 +23,7 @@ def create_app(config_name=None):
 
     login_manager.login_view = 'main.login'
 
-    @login_manager.user_loader
-    def load_user(user_id):
-        return User.query.get(int(user_id))
+    
 
     app.register_blueprint(main_blueprint)
     app.register_blueprint(category_blueprint, url_prefix='/category')

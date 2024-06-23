@@ -1,1 +1,4 @@
 venv/
+net4uInv_Env/
+app/__pycache__/
+app/crud/__pycache__/
