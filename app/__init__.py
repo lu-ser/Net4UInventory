@@ -1,5 +1,5 @@
 from flask import Flask
-from .extensions import db, migrate, login_manager
+from .extensions import db, migrate, login_manager, upload_dir
 from .views import main_blueprint
 from .category_routes import category_blueprint
 
@@ -27,6 +27,7 @@ def create_app(config_name=None):
 
     app.register_blueprint(main_blueprint)
     app.register_blueprint(category_blueprint, url_prefix='/category')
+    app.config['UPLOAD_FOLDER'] = upload_dir
     from . import models  # Assicurati di importare i modelli dopo l'inizializzazione di db
 
     return app

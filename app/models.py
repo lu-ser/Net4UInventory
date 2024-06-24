@@ -41,7 +41,7 @@ class Product(db.Model):
 
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
+    name = db.Column(db.String(100), unique=True, nullable=False)
 
 class ProductCategory(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'), primary_key=True)

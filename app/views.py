@@ -5,13 +5,14 @@ from werkzeug.utils import secure_filename
 import os
 from .forms import LoginForm, RegistrationForm
 from .models import User, Product, Category
-from .extensions import db
+from .extensions import db, upload_dir
 import csv
 
 
 main_blueprint = Blueprint('main', __name__)
 
 @main_blueprint.route('/')
+@login_required
 def index():
     return render_template('backend/index.html')
 
@@ -43,7 +44,7 @@ def register_user():
     db.session.add(new_user)
     db.session.commit()
     flash('User successfully registered.')
-    return redirect(url_for('login'))
+    return redirect(url_for('main.login'))
 
 
 
@@ -60,7 +61,7 @@ def login():
             return redirect(url_for('main.index'))  # Redirigi all'area protetta dopo il login
         else:
             flash('Invalid email or password.')
-            return redirect(url_for('login'))
+            return redirect(url_for('main.login'))
 
     return render_template('backend/auth-sign-in.html')
 
@@ -80,7 +81,7 @@ def add_product():
         # Assume you've a function to handle file saving
         image = request.files['pic']
         filename = secure_filename(image.filename)
-        image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        image.save(os.path.join(upload_dir, filename))
 
         # Creating the product instance
         product = Product(
@@ -109,7 +110,7 @@ def upload_csv():
         return redirect(request.url)
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file_path = os.path.join(upload_dir, filename)
         file.save(file_path)
 
         with open(file_path, mode='r') as csv_file:
@@ -127,9 +128,27 @@ def upload_csv():
             db.session.commit()
 
         flash('Products uploaded successfully!', 'success')
-        return redirect(url_for('page_list_product'))
+        return redirect(url_for('main.page_list_product'))
     return render_template('backend/upload_csv.html')
 
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ['csv']
+
+
+@main_blueprint.route('/add_category', methods=['GET', 'POST'])
+def add_category():
+    print("HELlo")
+    if request.method == 'POST':
+        name = request.form['name']
+        new_category = Category(name=name)
+        db.session.add(new_category)
+        try:
+            db.session.commit()
+            flash('Category added successfully!', 'success')
+        except:
+            db.session.rollback()
+            flash('Error adding category. The name might already exist.', 'error')
+        return redirect(url_for('main.add_category'))
+    
+    return render_template('backend/page-add-category.html')

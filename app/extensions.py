@@ -3,5 +3,6 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 
 db = SQLAlchemy()
+upload_dir = "./upload"
 migrate = Migrate()
 login_manager = LoginManager()
