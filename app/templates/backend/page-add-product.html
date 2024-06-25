@@ -59,6 +59,86 @@
                         </div>
                     </div>
                     <div class="card-body">
+                         <!-- Modal -->
+                         <div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                              <div class="modal-content">
+                                <div class="modal-header">
+                                  <h5 class="modal-title" id="categoryModalLabel">New Category</h5>
+                                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                  </button>
+                                </div>
+                                <div class="modal-body">
+                                  <form id="new-category-form">
+                                    <div class="form-group">
+                                      <label for="new-category-name">Category Name</label>
+                                      <input type="text" class="form-control" id="new-category-name" name="name" placeholder="Enter category name" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Save Category</button>
+                                  </form>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <!-- Modal per aggiungere una nuova Location -->
+                        <div class="modal fade" id="newLocationModal" tabindex="-1" aria-labelledby="newLocationModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                <h5 class="modal-title" id="newLocationModalLabel">New Location</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                                </div>
+                                <div class="modal-body">
+                                <form id="new-location-form" action="/add_location" method="POST">
+                                    <div class="form-group">
+                                    <label for="location-pavilion">Pavilion</label>
+                                    <input type="text" class="form-control" id="location-pavilion" name="pavilion" placeholder="Enter pavilion" required>
+                                    </div>
+                                    <div class="form-group">
+                                    <label for="location-room">Room</label>
+                                    <input type="text" class="form-control" id="location-room" name="room" placeholder="Enter room">
+                                    </div>
+                                    <div class="form-group">
+                                    <label for="location-cabinet">Cabinet</label>
+                                    <input type="text" class="form-control" id="location-cabinet" name="cabinet" placeholder="Enter cabinet">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Save Location</button>
+                                </form>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                        <!-- Modal per aggiungere un nuovo Project -->
+                        <div class="modal fade" id="newProjectModal" tabindex="-1" aria-labelledby="newProjectModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                <h5 class="modal-title" id="newProjectModalLabel">New Project</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                                </div>
+                                <div class="modal-body">
+                                <form id="new-project-form" action="/add_project" method="POST">
+                                    <div class="form-group">
+                                    <label for="project-name">Project Name</label>
+                                    <input type="text" class="form-control" id="project-name" name="name" placeholder="Enter project name" required>
+                                    </div>
+                                    <div class="form-group">
+                                    <label for="project-funding">Funding Body</label>
+                                    <input type="text" class="form-control" id="project-funding" name="funding_body" placeholder="Enter funding body">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Save Project</button>
+                                </form>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                        
+  
                         <h5 class="card-title">Bulk Upload Products</h5>
                         <form action="/upload_csv" method="POST" enctype="multipart/form-data">
                             <div class="form-group">
@@ -86,12 +166,52 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label>Category *</label>
-                                        <select name="category_id" class="selectpicker form-control" data-style="py-0">
-                                            <!-- Le categorie devono essere popolate dinamicamente -->
+                                        <label>Location *</label>
+                                        <div class="row">
+                                            <div class="col-sm-6">
+                                            <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#newLocationModal">
+                                                Add New Location
+                                              </button>
+                                            </div>
+                                        </div>
+                                        <select name="location_id" class="selectpicker form-control" required>
+                                            {% for location in locations %}
+                                            <option value="{{ location.id }}">{{ location.pavilion }} - {{ location.room }} - {{ location.cabinet }}</option>
+                                            {% endfor %}
                                         </select>
-                                    </div>
-                                </div>
+                                    </div></div>
+                                    <div class="col-md-6">  
+                                    <div class="form-group">
+                                        <label>Project *</label>
+                                        <div class="row">
+                                            <div class="col-sm-6">
+                                                <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#newProjectModal">
+                                                    Add New Project
+                                              </button>
+                                            </div>
+                                        </div>
+                                        <select name="project_id" class="selectpicker form-control" required>
+                                            {% for project in projects %}
+                                            <option value="{{ project.id }}">{{ project.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div></div>
+                                    <div class="col-md-12">  
+                                    <div class="form-group">
+                                        <label>Category *</label>
+                                        <div class="row">
+                                            <div class="col-sm-6">
+                                                <button type="button" class="btn btn-secondary mb-3" data-toggle="modal" data-target="#categoryModal">
+                                                    Add New Category
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <select name="category_ids" class="selectpicker form-control" data-style="py-0" multiple required>
+                                            {% for category in categories %}
+                                            <option value="{{ category.id }}">{{ category.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div></div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>Quantity *</label>
@@ -154,7 +274,40 @@
     
     <!-- Chart Custom JavaScript -->
     <script async src="../../static/js/chart-custom.js"></script>
-    
+    <script>
+        function addEntity(formId, modalId, selectId, url) {
+            $(formId).submit(function(e) {
+                e.preventDefault();
+                var formData = $(this).serialize(); // Prendi tutti i dati del form
+
+                $.ajax({
+                    url: url,
+                    method: 'POST',
+                    data: formData,
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            $(modalId).modal('hide');
+                            // Aggiungi l'entità alla select corrispondente
+                            $(selectId).append(`<option value="${response.entity.id}" selected>${response.entity.name}</option>`).selectpicker('refresh');
+                        } else {
+                            alert(response.message);  // mostra l'errore all'utente
+                        }
+                    },
+                    error: function(xhr) {
+                        console.log('Error:', xhr.responseText);
+                        alert('Failed to add entity.');
+                    }
+                });
+            });
+        }
+
+            // Uso della funzione per categories, locations e projects
+            $(document).ready(function() {
+                addEntity('#new-category-form', '#categoryModal', 'select[name="category_ids"]', '/add_category');
+                addEntity('#new-location-form', '#locationModal', 'select[name="location_id"]', '/add_location');
+                addEntity('#new-project-form', '#projectModal', 'select[name="project_id"]', '/add_project');
+            });
+    </script>
     <!-- app JavaScript -->
     <script src="../../static/js/app.js"></script>
   </body>

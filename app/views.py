@@ -1,10 +1,10 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os
 from .forms import LoginForm, RegistrationForm
-from .models import User, Product, Category
+from .models import User, Product, Category, Location, Project, ProductManager
 from .extensions import db, upload_dir
 import csv
 
@@ -70,36 +70,59 @@ def show_register_page():
     return render_template('backend/register.html')
 
 
-@main_blueprint.route('/add_product', methods=['POST','GET'])
+@main_blueprint.route('/add_product', methods=['POST', 'GET'])
+@login_required
 def add_product():
     if request.method == 'POST':
         name = request.form['name']
         unique_code = request.form['unique_code']
         description = request.form.get('description', '')
-        category_id = request.form['category_id']
+        location_id = request.form['location_id']
+        project_id = request.form['project_id']
+        category_ids = request.form.getlist('category_ids')
+        
+        if not category_ids:
+            flash('You must select at least one category.')
+            return redirect(url_for('add_product_page'))
+        
+        # Verifica l'esistenza delle categorie
+        valid_categories = Category.query.filter(Category.id.in_(category_ids)).count()
+        if valid_categories != len(category_ids):
+            flash('One or more selected categories are invalid.')
+            return redirect(url_for('add_product_page'))
+        categories = Category.query.filter(Category.id.in_(category_ids)).all()
         quantity = int(request.form['quantity'])
-        # Assume you've a function to handle file saving
-        image = request.files['pic']
-        filename = secure_filename(image.filename)
-        image.save(os.path.join(upload_dir, filename))
-
-        # Creating the product instance
+        location = Location.query.get(location_id)
+        project = Project.query.get(project_id)
+        owner_id = current_user.id
         product = Product(
             name=name,
             unique_code=unique_code,
             description=description,
-            category_id=category_id,
+            location_id=location.id,
+            project_id=project.id,
             quantity=quantity,
-            image=filename  # Assuming you want to save the filename
+            owner_id=owner_id,
+            categories=categories
         )
+        
         db.session.add(product)
         db.session.commit()
-        flash('Product added successfully!', 'success')
-        return redirect(url_for('page_list_product'))
-    return render_template('backend/page-add-product.html')
+        # Aggiungi il proprietario come manager
+        product_manager = ProductManager(product_id=product.id, user_id=owner_id)
+        db.session.add(product_manager)
+        db.session.commit()
 
+        flash('Product added successfully!', 'success')
+        return redirect(url_for('main.add_product'))
+
+    categories = Category.query.all()
+    projects = Project.query.all()
+    locations = Location.query.all()
+    return render_template('backend/page-add-product.html', categories=categories, locations=locations, projects=projects)
 
 @main_blueprint.route('/upload_csv', methods=['POST'])
+@login_required
 def upload_csv():
     if 'file' not in request.files:
         flash('No file part')
@@ -136,19 +159,74 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ['csv']
 
 
-@main_blueprint.route('/add_category', methods=['GET', 'POST'])
+@main_blueprint.route('/add_category', methods=['POST'])
+@login_required
 def add_category():
-    print("HELlo")
-    if request.method == 'POST':
-        name = request.form['name']
-        new_category = Category(name=name)
-        db.session.add(new_category)
-        try:
-            db.session.commit()
-            flash('Category added successfully!', 'success')
-        except:
-            db.session.rollback()
-            flash('Error adding category. The name might already exist.', 'error')
-        return redirect(url_for('main.add_category'))
-    
-    return render_template('backend/page-add-category.html')
+    name = request.form['name']
+    new_category = Category(name=name)
+    db.session.add(new_category)
+    try:
+        db.session.commit()
+        return jsonify({
+            'status': 'success',
+            'message': 'Category added successfully!',
+            'entity': {'id': new_category.id, 'name': new_category.name}
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': 'Error adding category',
+            'error': str(e)
+        }), 400
+
+
+@main_blueprint.route('/add_location', methods=['POST'])
+@login_required
+def add_location():
+    pavilion = request.form.get('pavilion')
+    room = request.form.get('room', '')
+    cabinet = request.form.get('cabinet', '')
+    if not pavilion:
+        return jsonify({'error': 'Pavilion is required'}), 400
+    location = Location(pavilion=pavilion, room=room, cabinet=cabinet)
+    db.session.add(location)
+    try:
+        db.session.commit()
+        return jsonify({
+            'status': 'success',
+            'message': 'Location added successfully',
+            'entity': {'id': location.id, 'name': f"{location.pavilion} - {location.room} - {location.cabinet}"}
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': 'Error adding location',
+            'error': str(e)
+        }), 400
+
+@main_blueprint.route('/add_project', methods=['POST'])
+@login_required
+def add_project():
+    name = request.form.get('name')
+    funding_body = request.form.get('funding_body', '')
+    if not name:
+        return jsonify({'error': 'Project name is required'}), 400
+    project = Project(name=name, funding_body=funding_body)
+    db.session.add(project)
+    try:
+        db.session.commit()
+        return jsonify({
+            'status': 'success',
+            'message': 'Project added successfully',
+            'entity': {'name': f"{project.name}"}
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': 'Error adding the project',
+            'error': str(e)
+        }), 400
+
