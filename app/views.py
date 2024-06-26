@@ -230,3 +230,15 @@ def add_project():
             'error': str(e)
         }), 400
 
+@main_blueprint.route('/list_products')
+@login_required
+def list_products():
+    user_only = request.args.get('user_only', 'false').lower() in ['true', '1', 't']
+    if user_only:
+        # Mostra solo i prodotti dell'utente
+        products = Product.query.filter_by(owner_id=current_user.id).all()
+    else:
+        # Mostra tutti i prodotti sulla piattaforma
+        products = Product.query.all()
+
+    return render_template('backend/page-list-product.html', products=products)
