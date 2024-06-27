@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -235,10 +235,39 @@ def add_project():
 def list_products():
     user_only = request.args.get('user_only', 'false').lower() in ['true', '1', 't']
     if user_only:
-        # Mostra solo i prodotti dell'utente
-        products = Product.query.filter_by(owner_id=current_user.id).all()
+        # Mostra solo i prodotti attivi dell'utente e quelli per cui è manager
+        products = Product.query.filter(Product.owner_id == current_user.id).all()
+        # Includere anche i prodotti gestiti dall'utente
+        managed_products = Product.query.join(Product.managers).filter(User.id == current_user.id, Product.is_active == True).all()
+        products.extend(managed_products)
     else:
         # Mostra tutti i prodotti sulla piattaforma
-        products = Product.query.all()
+        products = Product.query.filter(Product.is_active == True)
 
     return render_template('backend/page-list-product.html', products=products)
+
+
+@main_blueprint.route('/toggle_product/<int:product_id>', methods=['POST'])
+@login_required
+def toggle_product(product_id):
+    product = Product.query.get_or_404(product_id)
+    if current_user.id == product.owner_id or current_user in product.managers:
+        product.is_active = not product.is_active
+        db.session.commit()
+        return jsonify({'success': 'Product visibility updated', 'is_active': product.is_active})
+    return jsonify({'error': 'Unauthorized'}), 403
+
+
+@main_blueprint.route('/product/<encrypted_id>') #TODO Non funziona, creare prima la pagina per mostrare l'oggetto. Parte view e parte edit
+def view_product(encrypted_id):
+    try:
+        product_id = current_app.auth_s.loads(encrypted_id)
+        print(product_id)
+    except Exception as e:
+        return "Invalid ID", 400
+
+    product = Product.query.get(product_id)
+    if not product:
+        return "Product not found", 404
+
+    return render_template('product_detail.html', product=product) #TODO product_details.html non esiste ancora

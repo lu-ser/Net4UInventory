@@ -32,6 +32,8 @@ class Product(db.Model):
     project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
     owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)  # Aggiunto per tracciare lo stato di attivazione
+
     # Existing relationships
     categories = db.relationship('Category', secondary='product_category', backref='products')
     loans = db.relationship('Loan', backref='product')
