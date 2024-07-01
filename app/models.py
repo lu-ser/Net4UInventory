@@ -34,10 +34,10 @@ class Product(db.Model):
     owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)  # Aggiunto per tracciare lo stato di attivazione
 
-    # Existing relationships
+    location = db.relationship('Location', backref=db.backref('products', lazy=True))
+    project = db.relationship('Project', backref=db.backref('products', lazy=True))
     categories = db.relationship('Category', secondary='product_category', backref='products')
     loans = db.relationship('Loan', backref='product')
-    # New relationship for managers
     managers = db.relationship('User', secondary='product_manager', backref='manages_products')
 
 

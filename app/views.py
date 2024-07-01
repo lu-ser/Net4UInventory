@@ -258,16 +258,79 @@ def toggle_product(product_id):
     return jsonify({'error': 'Unauthorized'}), 403
 
 
-@main_blueprint.route('/product/<encrypted_id>') #TODO Non funziona, creare prima la pagina per mostrare l'oggetto. Parte view e parte edit
+@main_blueprint.route('/product/<encrypted_id>')
+@login_required
 def view_product(encrypted_id):
     try:
-        product_id = current_app.auth_s.loads(encrypted_id)
-        print(product_id)
+        product_id = current_app.auth_s.loads(encrypted_id)  # Decodifica l'ID
     except Exception as e:
-        return "Invalid ID", 400
+        flash('Invalid product ID.', 'error')
+        return redirect(url_for('main.index'))
 
-    product = Product.query.get(product_id)
-    if not product:
-        return "Product not found", 404
+    product = Product.query.get_or_404(product_id)
 
-    return render_template('product_detail.html', product=product) #TODO product_details.html non esiste ancora
+    # Verifica se l'utente corrente è il proprietario o un manager
+    is_owner_or_manager = current_user.id == product.owner_id or \
+                          any(manager.user_id == current_user.id for manager in product.manager_associations)
+
+    # Ottieni tutte le categorie e i progetti
+    all_categories = Category.query.order_by(Category.name).all()
+    all_projects = Project.query.all()
+
+    # Evidenzia le selezioni attuali
+    selected_categories = [category.id for category in product.categories]
+    selected_project = product.project_id if product.project else None
+
+    # Ottieni tutti gli utenti per la selezione dei manager
+    all_users = User.query.order_by(User.name).all()
+
+    # Prepara la lista degli ID dei manager già assegnati al prodotto
+    assigned_manager_ids = {manager.user_id for manager in product.manager_associations}
+
+    return render_template('backend/page-product.html',
+                           product=product,
+                           all_categories=all_categories,
+                           selected_categories=selected_categories,
+                           all_users=all_users,
+                           selected_managers=assigned_manager_ids,
+                           all_projects=all_projects,
+                           selected_project=selected_project,
+                           is_owner_or_manager=is_owner_or_manager)
+
+
+@main_blueprint.route('/update_product/<encrypted_id>', methods=['POST'])
+@login_required
+def update_product(encrypted_id):
+    try:
+        product_id = current_app.auth_s.loads(encrypted_id)  # Decodifica l'ID
+    except Exception as e:
+        flash('Invalid product ID.', 'error')
+        return redirect(url_for('main.index'))
+    product = Product.query.get_or_404(product_id)
+    if product.owner_id != current_user.id:
+        flash('You do not have permission to edit this product.', 'error')
+        return redirect(url_for('main.list_products'))
+
+    product.name = request.form['name']
+    product.description = request.form['description']
+    product.quantity = request.form['quantity']
+    category_ids = request.form.getlist('category_ids[]')
+    product.categories = Category.query.filter(Category.id.in_(category_ids)).all()
+    # Assicurati che il proprietario sia sempre un manager
+    manager_ids = request.form.getlist('managers[]')
+    project_id = request.form.get('project_id')
+    product.project_id = project_id
+    if str(product.owner_id) not in manager_ids:
+        manager_ids.append(str(product.owner_id))
+    
+    # Update manager associations
+    product.managers = [User.query.get(manager_id) for manager_id in manager_ids if User.query.get(manager_id)]
+
+    try:
+        db.session.commit()
+        flash('Product updated successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error updating product: {str(e)}', 'error')
+
+    return redirect(url_for('main.list_products'))
