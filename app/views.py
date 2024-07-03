@@ -276,6 +276,7 @@ def view_product(encrypted_id):
     # Ottieni tutte le categorie e i progetti
     all_categories = Category.query.order_by(Category.name).all()
     all_projects = Project.query.all()
+    all_locations = Location.query.order_by(Location.pavilion).all()
 
     # Evidenzia le selezioni attuali
     selected_categories = [category.id for category in product.categories]
@@ -288,17 +289,20 @@ def view_product(encrypted_id):
     assigned_manager_ids = {manager.user_id for manager in product.manager_associations}
 
     return render_template('backend/page-product.html',
-                           product=product,
-                           all_categories=all_categories,
-                           selected_categories=selected_categories,
-                           all_users=all_users,
-                           selected_managers=assigned_manager_ids,
-                           all_projects=all_projects,
-                           selected_project=selected_project,
-                           is_owner_or_manager=is_owner_or_manager)
+                        product=product,
+                        all_categories=all_categories,
+                        selected_categories=selected_categories,
+                        all_users=all_users,
+                        selected_managers=assigned_manager_ids,
+                        all_projects=all_projects,
+                        selected_project=selected_project,
+                        all_locations=all_locations,
+                        selected_location=product.location_id,
+                        is_owner_or_manager=is_owner_or_manager)
 
 
-@main_blueprint.route('/update_product/<encrypted_id>', methods=['POST'])
+@main_blueprint.route('/update_product/<encrypted_id>', methods=['POST']) #TODO Fix del bottone aggiungi location
+#TODO Aggiungere bottone add category, project
 @login_required
 def update_product(encrypted_id):
     try:
@@ -322,7 +326,7 @@ def update_product(encrypted_id):
     product.project_id = project_id
     if str(product.owner_id) not in manager_ids:
         manager_ids.append(str(product.owner_id))
-    
+    product.location_id = request.form['location_id']
     # Update manager associations
     product.managers = [User.query.get(manager_id) for manager_id in manager_ids if User.query.get(manager_id)]
 
@@ -334,3 +338,5 @@ def update_product(encrypted_id):
         flash(f'Error updating product: {str(e)}', 'error')
 
     return redirect(url_for('main.list_products'))
+
+

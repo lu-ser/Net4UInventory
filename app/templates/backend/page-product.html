@@ -82,7 +82,7 @@
                                                 <option value="{{ user.id }}" 
                                                         {% if user.id in selected_managers %} selected {% endif %}
                                                         {% if user.id == product.owner_id %} disabled {% endif %}>
-                                                    {{ user.name }}
+                                                    {{ user.name }} {{ user.surname }}
                                                 </option>
                                             {% endfor %}
                                         </select>                                        
@@ -119,6 +119,22 @@
                                     <input type="number" name="quantity" class="form-control" value="{{ product.quantity }}" required {% if not is_owner_or_manager %}disabled{% endif %}>
                                 </div>
                             </div>
+                            <div class="col-md-12">
+                                <div class="form-group">
+                            <!-- Button trigger modal -->
+                            <label>Location *</label>
+                            <select name="location_id" id="location_id" class="selectpicker form-control" required>
+                                <option value="" disabled selected>Select a Location</option>
+                                {% for location in all_locations %}
+                                <option value="{{ location.id }}" {% if location.id == selected_location %}selected{% endif %}>
+                                    {{ location.pavilion }} - {{ location.room if location.room }} - {{ location.cabinet if location.cabinet }}
+                                </option>
+                                {% endfor %}
+                            </select>                            
+                            <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#newLocationModal">
+                                Add New Location
+                            </button>
+                            </div></div>
                             <!-- Submit Button -->
                             <div class="col-md-12">
                                 <button type="submit" class="btn btn-primary" {% if not is_owner_or_manager %}disabled{% endif %}>Update Product</button>
@@ -131,6 +147,36 @@
         <!-- Page end  -->
     </div>
       </div>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="newLocationModal" tabindex="-1" role="dialog" aria-labelledby="newLocationModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newLocationModalLabel">Add New Location</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="new-location-form">
+                        <div class="form-group">
+                            <label for="pavilion">Pavilion</label>
+                            <input type="text" class="form-control" id="pavilion" name="pavilion" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="room">Room</label>
+                            <input type="text" class="form-control" id="room" name="room">
+                        </div>
+                        <div class="form-group">
+                            <label for="cabinet">Cabinet</label>
+                            <input type="text" class="form-control" id="cabinet" name="cabinet">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Location</button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
     <!-- Wrapper End-->
     <footer class="iq-footer">
@@ -189,8 +235,39 @@
                     }
                 });
             });
-            </script>
             
+            </script>
+            <script>
+                $('#new-location-form').on('submit', function(e) {
+                    e.preventDefault();
+
+                    var formData = $(this).serialize();
+                    $.ajax({
+                        type: 'POST',
+                        url: '/add_location',
+                        data: formData,
+                        success: function(response) {
+                            if(response.location) {
+                                // Crea la nuova opzione
+                                var newOption = new Option(response.location.pavilion + " - " + response.location.room + " - " + response.location.cabinet, response.location.id, false, true);
+                                
+                                // Aggiungi la nuova opzione alla selectpicker
+                                $('#location_id').append(newOption).selectpicker('refresh');
+                            }
+                            // Chiudi il modal
+                            $('#newLocationModal').modal('hide');
+                            // Reset del form
+                            $('#new-location-form')[0].reset();
+                        },
+                        error: function(xhr, status, error) {
+                            console.error("Error in Ajax call", error);
+                            alert('Error adding location. Please try again.');
+                        }
+                    });
+                    });
+                    <!--TODO NON FUNZIONA. BISOGNA CHE LA PAGINA SI AGGIORNI QUANDO CREIAMO UNA NUOVA LOCATION MA NON VA.-->
+            </script>
+
     <!-- Chart Custom JavaScript -->
     <script src="../../static/js/customizer.js"></script>
 
