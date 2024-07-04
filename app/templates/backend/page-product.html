@@ -72,6 +72,9 @@
                                         {% endfor %}
                                         
                                     </select>
+                                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#newCategoryModal">
+                                        Add New Category
+                                      </button>
                                 </div>                                
                             </div>
                                 <div class="col-md-12">
@@ -178,6 +181,28 @@
             </div>
         </div>
     </div>
+    <!-- The Modal -->
+<div class="modal fade" id="newCategoryModal" tabindex="-1" role="dialog" aria-labelledby="categoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="categoryModalLabel">New Category</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="new-category-form">
+            <div class="form-group">
+              <label for="category-name">Category Name</label>
+              <input type="text" class="form-control" id="category-name" name="name" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Category</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
     <!-- Wrapper End-->
     <footer class="iq-footer">
             <div class="container-fluid">
@@ -239,35 +264,66 @@
             </script>
             <script>
                 $('#new-location-form').on('submit', function(e) {
-                    e.preventDefault();
+    e.preventDefault();
+    var formData = $(this).serialize();
 
-                    var formData = $(this).serialize();
-                    $.ajax({
-                        type: 'POST',
-                        url: '/add_location',
-                        data: formData,
-                        success: function(response) {
-                            if(response.location) {
-                                // Crea la nuova opzione
-                                var newOption = new Option(response.location.pavilion + " - " + response.location.room + " - " + response.location.cabinet, response.location.id, false, true);
-                                
-                                // Aggiungi la nuova opzione alla selectpicker
-                                $('#location_id').append(newOption).selectpicker('refresh');
-                            }
-                            // Chiudi il modal
-                            $('#newLocationModal').modal('hide');
-                            // Reset del form
-                            $('#new-location-form')[0].reset();
-                        },
-                        error: function(xhr, status, error) {
-                            console.error("Error in Ajax call", error);
-                            alert('Error adding location. Please try again.');
-                        }
-                    });
-                    });
+    $.ajax({
+        type: 'POST',
+        url: '/add_location',
+        data: formData,
+        success: function(response) {
+            console.log('Success data:', response);
+            if (response && response.entity) {
+                // Crea la nuova opzione
+                var newOption = new Option(response.entity.name, response.entity.id, false, true);
+                // Aggiungi la nuova opzione alla selectpicker
+                $('#location_id').append(newOption).selectpicker('refresh');
+            }
+            // Chiudi il modal
+            $('#newLocationModal').modal('hide');
+            // Reset del form
+            $('#new-location-form')[0].reset();
+        },
+        error: function(xhr, status, error) {
+            console.error("Error in Ajax call", error);
+            alert('Error adding location. Please try again.');
+        }
+    });
+});
+
                     <!--TODO NON FUNZIONA. BISOGNA CHE LA PAGINA SI AGGIORNI QUANDO CREIAMO UNA NUOVA LOCATION MA NON VA.-->
             </script>
+<script>
+    $(document).ready(function() {
+    $('#new-category-form').on('submit', function(e) {
+        e.preventDefault();
+        var formData = $(this).serialize();
 
+        $.ajax({
+            type: 'POST',
+            url: '/add_category',
+            data: formData,
+            success: function(response) {
+                console.log('Success data:', response);
+                if (response && response.entity) {
+                    // Crea la nuova opzione
+                    var newOption = new Option(response.entity.name, response.entity.id, false, true);
+                    // Aggiungi la nuova opzione alla selectpicker
+                    $('#categories').append(newOption).trigger('change');
+                }
+                // Chiudi il modal
+                $('#newCategoryModal').modal('hide');
+                // Reset del form
+                $('#new-category-form')[0].reset();
+            },
+            error: function(xhr, status, error) {
+                console.error("Error in Ajax call", error);
+                alert('Error adding category. Please try again.');
+            }
+        });
+    });
+});
+</script>
     <!-- Chart Custom JavaScript -->
     <script src="../../static/js/customizer.js"></script>
 
