@@ -4,7 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os
 from .forms import LoginForm, RegistrationForm
-from .models import User, Product, Category, Location, Project, ProductManager
+from .models import User, Product, Category, Location, Project, ProductManager, Loan
 from .extensions import db, upload_dir
 import csv
 
@@ -340,3 +340,56 @@ def update_product(encrypted_id):
     return redirect(url_for('main.list_products'))
 
 
+@main_blueprint.route('/set_product_unavailability/<encrypted_id>', methods=['POST'])
+@login_required
+def set_product_unavailability(encrypted_id):
+    product_id = current_app.auth_s.loads(encrypted_id)
+    product = Product.query.get_or_404(product_id)
+
+    if current_user.id not in [product.owner_id] + [manager.user_id for manager in product.managers]:
+        flash('You do not have permission to perform this action.', 'error')
+        return redirect(url_for('main.index'))
+
+    unavailability = Loan(
+        product_id=product_id,
+        borrower_id=current_user.id,
+        manager_id=current_user.id,  # Considered as managed by self for unavailability
+        start_date=request.form['start_date'],
+        end_date=request.form['end_date'],
+        status='unavailable',
+        quantity=request.form['unavailability_quantity']
+    )
+    db.session.add(unavailability)
+    try:
+        db.session.commit()
+        flash('Product set as unavailable successfully.', 'success')
+    except:
+        db.session.rollback()
+        flash('Error setting product as unavailable.', 'error')
+
+    return redirect(url_for('main.product_details', encrypted_id=encrypted_id))
+
+@main_blueprint.route('/request_product/<encrypted_id>', methods=['POST'])
+@login_required
+def request_product(encrypted_id):
+    product_id = current_app.auth_s.loads(encrypted_id)
+    product = Product.query.get_or_404(product_id)
+
+    request = Loan(
+        product_id=product_id,
+        borrower_id=current_user.id,
+        manager_id=product.owner_id,  # Request to be approved by the owner
+        start_date=request.form['request_start_date'],
+        end_date=request.form['request_end_date'],
+        status='pending',
+        quantity=request.form['request_quantity']
+    )
+    db.session.add(request)
+    try:
+        db.session.commit()
+        flash('Product request submitted successfully.', 'success')
+    except:
+        db.session.rollback()
+        flash('Error submitting product request.', 'error')
+
+    return redirect(url_for('main.product_details', encrypted_id=encrypted_id)) #TODO VEDERE LE DUE SEZIONI
