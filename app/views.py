@@ -7,7 +7,8 @@ from .forms import LoginForm, RegistrationForm
 from .models import User, Product, Category, Location, Project, ProductManager, Loan
 from .extensions import db, upload_dir
 import csv
-
+from datetime import datetime
+from .utils.inventory_helpers import get_reserved_quantity, get_active_loans
 
 main_blueprint = Blueprint('main', __name__)
 
@@ -268,7 +269,7 @@ def view_product(encrypted_id):
         return redirect(url_for('main.index'))
 
     product = Product.query.get_or_404(product_id)
-
+    reserved_quantity = get_reserved_quantity(product_id)  
     # Verifica se l'utente corrente è il proprietario o un manager
     is_owner_or_manager = current_user.id == product.owner_id or \
                           any(manager.user_id == current_user.id for manager in product.manager_associations)
@@ -298,7 +299,8 @@ def view_product(encrypted_id):
                         selected_project=selected_project,
                         all_locations=all_locations,
                         selected_location=product.location_id,
-                        is_owner_or_manager=is_owner_or_manager)
+                        is_owner_or_manager=is_owner_or_manager,
+                        reserved_quantity=reserved_quantity)
 
 
 @main_blueprint.route('/update_product/<encrypted_id>', methods=['POST']) #TODO Fix del bottone aggiungi location
@@ -369,27 +371,85 @@ def set_product_unavailability(encrypted_id):
 
     return redirect(url_for('main.product_details', encrypted_id=encrypted_id))
 
+
+@main_blueprint.route('/product_availability/<encrypted_id>')
+@login_required
+def product_availability(encrypted_id):
+    try:
+        product_id = current_app.auth_s.loads(encrypted_id)
+    except Exception as e:
+        return jsonify([])
+
+    quantity_requested = int(request.args.get('quantity', 1))
+    product = Product.query.get_or_404(product_id)
+    loans = get_active_loans(product_id)
+
+    events = []
+    for loan in loans:
+        if loan.quantity + quantity_requested > product.quantity:
+            events.append({
+                'title': 'Not Available',
+                'start': loan.start_date.strftime('%Y-%m-%d'),
+                'end': loan.end_date.strftime('%Y-%m-%d'),
+                'color': 'red'
+            })
+        else:
+            events.append({
+                'title': 'Available',
+                'start': loan.start_date.strftime('%Y-%m-%d'),
+                'end': loan.end_date.strftime('%Y-%m-%d'),
+                'color': 'green'
+            })
+
+    return jsonify(events)
+
 @main_blueprint.route('/request_product/<encrypted_id>', methods=['POST'])
 @login_required
 def request_product(encrypted_id):
-    product_id = current_app.auth_s.loads(encrypted_id)
+    try:
+        product_id = current_app.auth_s.loads(encrypted_id)  # Decodifica l'ID
+    except Exception as e:
+        flash('Invalid product ID.', 'error')
+        return redirect(url_for('main.index'))
+
     product = Product.query.get_or_404(product_id)
 
-    request = Loan(
-        product_id=product_id,
-        borrower_id=current_user.id,
-        manager_id=product.owner_id,  # Request to be approved by the owner
-        start_date=request.form['request_start_date'],
-        end_date=request.form['request_end_date'],
-        status='pending',
-        quantity=request.form['request_quantity']
-    )
-    db.session.add(request)
-    try:
-        db.session.commit()
-        flash('Product request submitted successfully.', 'success')
-    except:
-        db.session.rollback()
-        flash('Error submitting product request.', 'error')
+    request_quantity = int(request.form['request_quantity'])
+    request_start_date = datetime.strptime(request.form['request_start_date'], '%Y-%m-%d').date()
+    request_end_date = datetime.strptime(request.form['request_end_date'], '%Y-%m-%d').date()
 
-    return redirect(url_for('main.product_details', encrypted_id=encrypted_id)) #TODO VEDERE LE DUE SEZIONI
+    # Calcola le prenotazioni attive per questo prodotto
+    active_loans = get_active_loans(product_id)
+
+    # Logica per controllare la disponibilità del prodotto
+    product_available = True
+    for loan in active_loans:
+        # Verifica se ci sono sovrapposizioni con le date di prenotazione richieste
+        if (request_start_date <= loan.end_date and request_end_date >= loan.start_date):
+            product_available = False
+            break
+
+    if product_available:
+        # Salva la richiesta nel database o fai altro
+        # Esempio: crea una nuova prenotazione nel database
+        new_loan = Loan(
+            product_id=product_id,
+            borrower_id=current_user.id,
+            manager_id=product.owner_id,
+            start_date=request_start_date,
+            end_date=request_end_date,
+            quantity=request_quantity,
+            status='pending'  # Può essere 'pending' o 'approved' a seconda della tua logica
+        )
+        db.session.add(new_loan)
+        db.session.commit()
+
+        flash('Product requested successfully!', 'success')
+    else:
+        flash('Product not available for the requested dates.', 'error')
+
+    return redirect(url_for('main.view_product', encrypted_id=encrypted_id))
+
+ #TODO verificare se le quantià corrispondono
+    #TODO Vorrei vedere nel calendario quando il prodotto è disponibile e non ed in quanta misura. 
+    # Cioè, dato il numero di oggetti che voglio, il calendario si deve aggiornare indicandomi quando posso richiederlo o no
