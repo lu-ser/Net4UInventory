@@ -14,10 +14,38 @@
       <link rel="stylesheet" href="../../static/vendor/@fortawesome/fontawesome-free/css/all.min.css">
       <link rel="stylesheet" href="../../static/vendor/line-awesome/dist/line-awesome/css/line-awesome.min.css">
       <link rel="stylesheet" href="../../static/vendor/remixicon/fonts/remixicon.css">
-      <link href='https://unpkg.com/fullcalendar@5/main.min.css' rel='stylesheet' />
-      <script src='https://unpkg.com/fullcalendar@5/main.min.js'></script>
-      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.3.0/dist/js/select2.min.js"></script>
+      <!-- FullCalendar CSS -->
+      <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js"></script>
+      <link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.css" rel="stylesheet">
+      <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        #calendar {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .quantity-selector, .booking-info {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #debug-log {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+        }
+    </style>
+    
+    <!-- Your other CSS files -->
+    <link rel="stylesheet" href="../../static/assets/css/backend-plugin.min.css">
+    <link rel="stylesheet" href="../../static/assets/css/backend.css?v=1.0.0">
+    <link rel="stylesheet" href="../../static/assets/vendor/@fortawesome/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="../../static/assets/vendor/line-awesome/dist/line-awesome/css/line-awesome.min.css">
+    <link rel="stylesheet" href="../../static/assets/vendor/remixicon/fonts/remixicon.css">
+      
     </head>
   <body class="  ">
     <!-- loader Start -->
@@ -167,16 +195,23 @@
                         <button type="submit" class="btn btn-warning">Make Unavailable</button>
                     </form>
                     {% else %}
-                    <form method="post" action="{{ url_for('main.request_product', encrypted_id=auth_s.dumps(product.id)) }}">
-                        <div class="form-group">
-                            <label>Request Product:</label>
-                            <label for="quantity">Quantità:</label>
-                            <input type="number" id="quantity" name="quantity" min="1" value="1" />
-
-                            <div id='calendar'></div>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Request</button>
-                    </form>
+                    <div class="card-body">
+                            <div class="form-group">
+                                <label>Request Product:</label>
+                            </div>
+                            <div class="quantity-selector">
+                                <label for="quantity">Seleziona quantità:</label>
+                                <input type="number" id="quantity" min="1" value="1">
+                                <button onclick="updateCalendar()">Aggiorna Calendario</button>
+                            </div>
+                            <div class="booking-info">
+                                <span id="booking-status"></span>
+                                <button id="confirm-booking" style="display: none;">Conferma Prenotazione</button>
+                            </div>
+                            <div id="calendar"></div>
+                            <div id="debug-log"></div>
+                      </div>
+                    </div>
                     {% endif %}
                 </div>
             </div>
@@ -254,32 +289,23 @@
                 </div>
             </div>
         </div>
-        <!-- Modal for confirming booking -->
-<div class="modal fade" id="bookingModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+<!-- Modal per confermare le date -->
+<div class="modal fade" id="confirmModal" tabindex="-1" role="dialog" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Confirm Booking</h5>
+                <h5 class="modal-title" id="confirmModalLabel">Confirm Dates</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                <form id="bookingForm">
-                    <div class="form-group">
-                        <label>Start Date:</label>
-                        <input type="text" class="form-control" id="startDate" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>End Date:</label>
-                        <input type="text" class="form-control" id="endDate" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Quantity:</label>
-                        <input type="number" class="form-control" id="bookingQuantity" value="1">
-                    </div>
-                    <button type="submit" class="btn btn-primary">Book Now</button>
-                </form>
+                Are you sure you want to request these dates?
+                <div id="selectedDates"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" id="confirmDates" class="btn btn-primary">Confirm</button>
             </div>
         </div>
     </div>
@@ -295,55 +321,111 @@ function openBookingModal(start, end, startStr, endStr) {
     </footer>
     <!-- Backend Bundle JavaScript -->
     <script src="../../static/js/backend-bundle.min.js"></script>
+   
     
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var calendarEl = document.getElementById('calendar');
-            var calendar = new FullCalendar.Calendar(calendarEl, {
+        let calendar;
+        let reservedDates = {};
+        let bookingStart = null;
+        let bookingEnd = null;
+        let clickCount = 0; // Aggiungi un contatore per i click
+    
+        function initializeCalendar() {
+            const calendarEl = document.getElementById('calendar');
+            calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
+                events: [],
                 selectable: true,
-                selectMirror: true,
-                unselectAuto: false,
-                select: function(info) {
-                    handleDateSelection(info.startStr, info.endStr);
-                },
-                eventSources: [
-                    {
-                        url: '{{ url_for("main.product_availability", encrypted_id=auth_s.dumps(product.id)) }}', // Endpoint per ottenere la disponibilità
-                        method: 'GET',
-                        extraParams: function() {
-                            return {
-                                quantity: document.getElementById('quantity').value // Prendi la quantità desiderata dall'input appropriato
-                            };
-                        },
-                        failure: function() {
-                            alert('There was an error while fetching availability!');
-                        },
-                    }
-                ],
-                eventColor: '#378006' // Imposta il colore degli eventi di disponibilità
+                select: handleDateSelect,
+                unselectAuto: false
             });
-        
             calendar.render();
-        });
-        
-        function handleDateSelection(startDate, endDate) {
-            // Conferma direttamente la selezione o visualizza un alert per confermare
-            var confirmBooking = confirm(`Confirm booking from ${startDate} to ${endDate}?`);
-            if (confirmBooking) {
-                submitBooking(startDate, endDate);
-            } else {
-                calendar.unselect(); // Deseleziona nel caso l'utente annulli l'azione
+            fetchReservedDates();
+        }
+    
+        function fetchReservedDates() {
+            reservedDates = {
+                '2024-07-15': 5,
+                '2024-07-16': 3,
+                '2024-07-17': 2,
+                '2024-07-18': 4,
+                '2024-07-19': 1,
+            };
+            updateCalendar();
+        }
+    
+        function updateCalendar() {
+            const quantity = parseInt(document.getElementById('quantity').value, 10);
+            calendar.removeAllEvents();
+    
+            Object.entries(reservedDates).forEach(([date, reservedQuantity]) => {
+                calendar.addEvent({
+                    start: date,
+                    allDay: true,
+                    backgroundColor: reservedQuantity >= quantity ? 'red' : 'green',
+                    borderColor: reservedQuantity >= quantity ? 'red' : 'green',
+                    title: reservedQuantity >= quantity ? 'Non Disponibile' : 'Disponibile'
+                });
+            });
+    
+            if (bookingStart && bookingEnd) {
+                var startDate = new Date(bookingStart);
+                var endDate = new Date(bookingEnd);
+                while (startDate <= endDate) {
+                    calendar.addEvent({
+                        start: startDate,
+                        allDay: true,
+                        backgroundColor: 'yellow',
+                        rendering: 'background'
+                    });
+                    startDate.setDate(startDate.getDate() + 1);
+                }
             }
         }
-        
-        function submitBooking(startDate, endDate) {
-            var quantity = document.getElementById('quantity').value;
-            
+    
+        function handleDateSelect(selectInfo) {
+            clickCount++;
+            if (clickCount === 1) {
+                bookingStart = selectInfo.startStr;
+                bookingEnd = null;
+                document.getElementById('booking-status').textContent = `Data di inizio: ${bookingStart}`;
+            } else if (clickCount === 2) {
+                bookingEnd = selectInfo.startStr;
+                if (new Date(bookingEnd) < new Date(bookingStart)) {
+                    let temp = bookingStart;
+                    bookingStart = bookingEnd;
+                    bookingEnd = temp;
+                }
+                document.getElementById('booking-status').textContent += ` - Data di fine: ${bookingEnd}`;
+                document.getElementById('confirm-booking').style.display = 'inline-block';
+                updateCalendar();  // Update calendar to show selected range
+            } else {
+                resetSelection();
+            }
         }
-        </script>
-        
+    
+        function resetSelection() {
+            clickCount = 0;
+            bookingStart = null;
+            bookingEnd = null;
+            document.getElementById('booking-status').textContent = '';
+            document.getElementById('confirm-booking').style.display = 'none';
+            updateCalendar();  // Clear selection visualization
+        }
+    
+        document.getElementById('confirm-booking').addEventListener('click', function() {
+            alert(`Prenotazione confermata dal ${bookingStart} al ${bookingEnd}`);
+            resetSelection();
+        });
+    
+        document.getElementById('quantity').addEventListener('input', updateCalendar);  // Aggiorna il calendario quando cambia la quantità
+    
+        window.onload = initializeCalendar;
+    </script>
+    
+
+
 
     <!-- Table Treeview JavaScript -->
     <script src="../../static/js/table-treeview.js"></script>

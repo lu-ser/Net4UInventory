@@ -3,12 +3,14 @@ from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os
+from sqlalchemy import  func
 from .forms import LoginForm, RegistrationForm
 from .models import User, Product, Category, Location, Project, ProductManager, Loan
 from .extensions import db, upload_dir
 import csv
 from datetime import datetime
 from .utils.inventory_helpers import get_reserved_quantity, get_active_loans
+from datetime import datetime, timedelta
 
 main_blueprint = Blueprint('main', __name__)
 
@@ -269,38 +271,30 @@ def view_product(encrypted_id):
         return redirect(url_for('main.index'))
 
     product = Product.query.get_or_404(product_id)
-    reserved_quantity = get_reserved_quantity(product_id)  
-    # Verifica se l'utente corrente è il proprietario o un manager
-    is_owner_or_manager = current_user.id == product.owner_id or \
-                          any(manager.user_id == current_user.id for manager in product.manager_associations)
-
-    # Ottieni tutte le categorie e i progetti
+    is_owner_or_manager = current_user.id == product.owner_id or any(manager.user_id == current_user.id for manager in product.manager_associations)
     all_categories = Category.query.order_by(Category.name).all()
     all_projects = Project.query.all()
     all_locations = Location.query.order_by(Location.pavilion).all()
-
-    # Evidenzia le selezioni attuali
+    all_users = User.query.order_by(User.name).all()
     selected_categories = [category.id for category in product.categories]
     selected_project = product.project_id if product.project else None
-
-    # Ottieni tutti gli utenti per la selezione dei manager
-    all_users = User.query.order_by(User.name).all()
-
-    # Prepara la lista degli ID dei manager già assegnati al prodotto
     assigned_manager_ids = {manager.user_id for manager in product.manager_associations}
+    reserved_dates = get_reserved_dates(product.id)
+    reserved_quantity = get_reserved_quantity(product.id, datetime.now())
 
     return render_template('backend/page-product.html',
-                        product=product,
-                        all_categories=all_categories,
-                        selected_categories=selected_categories,
-                        all_users=all_users,
-                        selected_managers=assigned_manager_ids,
-                        all_projects=all_projects,
-                        selected_project=selected_project,
-                        all_locations=all_locations,
-                        selected_location=product.location_id,
-                        is_owner_or_manager=is_owner_or_manager,
-                        reserved_quantity=reserved_quantity)
+                           product=product,
+                           all_categories=all_categories,
+                           selected_categories=selected_categories,
+                           all_users=all_users,
+                           selected_managers=assigned_manager_ids,
+                           all_projects=all_projects,
+                           selected_project=selected_project,
+                           all_locations=all_locations,
+                           selected_location=product.location_id,
+                           is_owner_or_manager=is_owner_or_manager,
+                           reserved_dates=reserved_dates,
+                           reserved_quantity=reserved_quantity)
 
 
 @main_blueprint.route('/update_product/<encrypted_id>', methods=['POST']) #TODO Fix del bottone aggiungi location
@@ -453,3 +447,157 @@ def request_product(encrypted_id):
  #TODO verificare se le quantià corrispondono
     #TODO Vorrei vedere nel calendario quando il prodotto è disponibile e non ed in quanta misura. 
     # Cioè, dato il numero di oggetti che voglio, il calendario si deve aggiornare indicandomi quando posso richiederlo o no
+
+
+@main_blueprint.route('/fetch_availability/<encrypted_id>', methods=['GET'])
+@login_required
+def fetch_availability(encrypted_id):
+    try:
+        product_id = current_app.auth_s.loads(encrypted_id)
+    except Exception as e:
+        return jsonify([]), 400
+
+    start_date = request.args.get('start')
+    end_date = request.args.get('end')
+    quantity = int(request.args.get('quantity', 1))
+
+    if not start_date or not end_date:
+        return jsonify([]), 400
+
+    availability = get_availability(product_id, start_date, end_date, quantity)
+
+    return jsonify(availability)
+
+def get_availability(product_id, start_date, end_date, quantity):
+    # Implementa la logica per ottenere la disponibilità del prodotto
+    # Per esempio:
+    product = Product.query.get(product_id)
+    if not product:
+        return []
+
+    availability = []
+    current_date = datetime.strptime(start_date, '%Y-%m-%d')
+    end_date = datetime.strptime(end_date, '%Y-%m-%d')
+
+    while current_date <= end_date:
+        reserved_quantity = get_reserved_quantity(product_id, current_date)
+        available = product.quantity - reserved_quantity >= quantity
+        availability.append({'date': current_date.strftime('%Y-%m-%d'), 'available': available})
+        current_date += timedelta(days=1)
+
+    return availability
+
+def get_reserved_quantity(product_id, date):
+    reserved = db.session.query(func.sum(Loan.quantity)).filter(
+        Loan.product_id == product_id,
+        Loan.start_date <= date,
+        Loan.end_date >= date
+    ).scalar()
+
+    return reserved if reserved else 0
+
+def get_reserved_quantity_for_period(product_id, start_date, end_date):
+    reserved_quantity = db.session.query(func.sum(Loan.quantity)).filter(
+        Loan.product_id == product_id,
+        Loan.start_date <= end_date,
+        Loan.end_date >= start_date,
+        Loan.status != 'returned'
+    ).scalar()
+    return reserved_quantity if reserved_quantity else 0
+
+def get_reserved_dates(product_id):
+    loans = Loan.query.filter_by(product_id=product_id).all()
+    reserved_dates = {}
+    for loan in loans:
+        for date in daterange(loan.start_date, loan.end_date):
+            reserved_dates[date.strftime('%Y-%m-%d')] = reserved_dates.get(date.strftime('%Y-%m-%d'), 0) + loan.quantity
+    return reserved_dates
+
+@main_blueprint.route('/process_booking/<encrypted_id>', methods=['POST'])
+@login_required
+def process_booking(encrypted_id):
+    try:
+        product_id = current_app.auth_s.loads(encrypted_id)
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': 'Invalid product ID'}), 400
+
+    start_date = datetime.strptime(request.form['start_date'], '%Y-%m-%d')
+    end_date = datetime.strptime(request.form['end_date'], '%Y-%m-%d')
+    quantity = int(request.form['quantity'])
+
+    if not check_date_range_availability(product_id, start_date, end_date, quantity):
+        return jsonify({'status': 'error', 'message': 'Not enough quantity available for the selected dates'}), 400
+
+    new_loan = Loan(
+        product_id=product_id,
+        borrower_id=current_user.id,
+        manager_id=current_user.id,
+        start_date=start_date,
+        end_date=end_date,
+        quantity=quantity,
+        status='pending'
+    )
+    db.session.add(new_loan)
+    db.session.commit()
+
+    return jsonify({'status': 'success', 'message': 'Booking successful'})
+
+def daterange(start_date, end_date):
+    for n in range(int((end_date - start_date).days) + 1):
+        yield start_date + timedelta(n)
+
+def check_date_range_availability(product_id, start_date, end_date, quantity):
+    date = start_date
+    while date <= end_date:
+        reserved_quantity = get_reserved_quantity_for_day(product_id, date)
+        product = Product.query.get(product_id)
+        if product.quantity - reserved_quantity < quantity:
+            return False
+        date += timedelta(days=1)
+    return True
+
+@main_blueprint.route('/check_availability', methods=['POST'])
+def check_availability():
+    date = request.form['date']
+    quantity = int(request.form['quantity'])
+    product_id = int(request.form['product_id'])
+
+    date = datetime.strptime(date, '%Y-%m-%d')
+
+    reserved_quantity = get_reserved_quantity_for_day(product_id, date)
+    product = Product.query.get(product_id)
+    available_quantity = product.quantity - reserved_quantity
+
+    return jsonify({'available': available_quantity >= quantity})
+
+def get_reserved_quantity_for_day(product_id, date):
+    reserved_quantity = db.session.query(func.sum(Loan.quantity)).filter(
+        Loan.product_id == product_id,
+        Loan.start_date <= date,
+        Loan.end_date >= date,
+        Loan.status != 'returned'
+    ).scalar()
+    return reserved_quantity if reserved_quantity else 0
+
+@main_blueprint.route('/check_availability_range', methods=['POST'])
+@login_required
+def check_availability_range():
+    try:
+        product_id = current_app.auth_s.loads(request.form['encrypted_id'])
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': 'Invalid product ID'}), 400
+
+    start_date = datetime.strptime(request.form['start_date'], '%Y-%m-%d')
+    end_date = datetime.strptime(request.form['end_date'], '%Y-%m-%d')
+    quantity = int(request.form['quantity'])
+
+    reserved_dates = {}
+    date = start_date
+    while date <= end_date:
+        reserved_quantity = get_reserved_quantity_for_day(product_id, date)
+        product = Product.query.get(product_id)
+        available_quantity = product.quantity - reserved_quantity
+        reserved_dates[date.strftime('%Y-%m-%d')] = {'available': available_quantity >= quantity}
+        date += timedelta(days=1)
+
+    return jsonify(reserved_dates)
