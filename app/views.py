@@ -283,6 +283,7 @@ def view_product(encrypted_id):
     reserved_quantity = get_reserved_quantity(product.id, datetime.now())
 
     return render_template('backend/page-product.html',
+                           encrypted_product_id=encrypted_id,
                            product=product,
                            all_categories=all_categories,
                            selected_categories=selected_categories,

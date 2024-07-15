@@ -182,7 +182,7 @@
         <!-- Page end  -->
         </div>
         <div class="row">
-            <div class="col-sm-12">
+            <div class="col-lg-12">
                 <div class="card-body">
                     {% if is_owner_or_manager %}
                     <form method="post" action="{{ url_for('main.set_product_unavailability', encrypted_id=auth_s.dumps(product.id)) }}">
@@ -202,7 +202,7 @@
                             <div class="quantity-selector">
                                 <label for="quantity">Seleziona quantità:</label>
                                 <input type="number" id="quantity" min="1" value="1">
-                                <button onclick="updateCalendar()">Aggiorna Calendario</button>
+                                <input type="hidden" id="product-id" value="{{ encrypted_product_id }}">
                             </div>
                             <div class="booking-info">
                                 <span id="booking-status"></span>
@@ -326,102 +326,159 @@ function openBookingModal(start, end, startStr, endStr) {
 
     <script>
         let calendar;
-        let reservedDates = {};
-        let bookingStart = null;
-        let bookingEnd = null;
-        let clickCount = 0; // Aggiungi un contatore per i click
-    
-        function initializeCalendar() {
-            const calendarEl = document.getElementById('calendar');
-            calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
-                events: [],
-                selectable: true,
-                select: handleDateSelect,
-                unselectAuto: false
-            });
-            calendar.render();
-            fetchReservedDates();
+let reservedDates = {};
+let bookingStart = null;
+let bookingEnd = null;
+let clickCount = 0;
+let productId = null; // Aggiungi questa variabile per memorizzare l'ID del prodotto
+
+function initializeCalendar() {
+    const calendarEl = document.getElementById('calendar');
+    calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        events: [],
+        selectable: true,
+        select: handleDateSelect,
+        unselectAuto: false,
+        validRange: {
+            start: new Date() // Imposta la data di inizio valida a oggi
+        },
+        selectConstraint: {
+            start: new Date() // Limita la selezione a date da oggi in poi
+        },
+        selectAllow: function(selectInfo) {
+            return selectInfo.start >= new Date().setHours(0,0,0,0);
         }
-    
-        function fetchReservedDates() {
-            reservedDates = {
-                '2024-07-15': 5,
-                '2024-07-16': 3,
-                '2024-07-17': 2,
-                '2024-07-18': 4,
-                '2024-07-19': 1,
-            };
-            updateCalendar();
-        }
-    
-        function updateCalendar() {
-            const quantity = parseInt(document.getElementById('quantity').value, 10);
-            calendar.removeAllEvents();
-    
-            Object.entries(reservedDates).forEach(([date, reservedQuantity]) => {
-                calendar.addEvent({
-                    start: date,
-                    allDay: true,
-                    backgroundColor: reservedQuantity >= quantity ? 'red' : 'green',
-                    borderColor: reservedQuantity >= quantity ? 'red' : 'green',
-                    title: reservedQuantity >= quantity ? 'Non Disponibile' : 'Disponibile'
-                });
-            });
-    
-            if (bookingStart && bookingEnd) {
-                var startDate = new Date(bookingStart);
-                var endDate = new Date(bookingEnd);
-                while (startDate <= endDate) {
-                    calendar.addEvent({
-                        start: startDate,
-                        allDay: true,
-                        backgroundColor: 'yellow',
-                        rendering: 'background'
-                    });
-                    startDate.setDate(startDate.getDate() + 1);
-                }
-            }
-        }
-    
-        function handleDateSelect(selectInfo) {
-            clickCount++;
-            if (clickCount === 1) {
-                bookingStart = selectInfo.startStr;
-                bookingEnd = null;
-                document.getElementById('booking-status').textContent = `Data di inizio: ${bookingStart}`;
-            } else if (clickCount === 2) {
-                bookingEnd = selectInfo.startStr;
-                if (new Date(bookingEnd) < new Date(bookingStart)) {
-                    let temp = bookingStart;
-                    bookingStart = bookingEnd;
-                    bookingEnd = temp;
-                }
-                document.getElementById('booking-status').textContent += ` - Data di fine: ${bookingEnd}`;
-                document.getElementById('confirm-booking').style.display = 'inline-block';
-                updateCalendar();  // Update calendar to show selected range
-            } else {
-                resetSelection();
-            }
-        }
-    
-        function resetSelection() {
-            clickCount = 0;
-            bookingStart = null;
-            bookingEnd = null;
-            document.getElementById('booking-status').textContent = '';
-            document.getElementById('confirm-booking').style.display = 'none';
-            updateCalendar();  // Clear selection visualization
-        }
-    
-        document.getElementById('confirm-booking').addEventListener('click', function() {
-            alert(`Prenotazione confermata dal ${bookingStart} al ${bookingEnd}`);
-            resetSelection();
+    });
+    calendar.render();
+    fetchReservedDates();
+}
+
+function fetchReservedDates() {
+    const quantity = parseInt(document.getElementById('quantity').value, 10);
+    const startDate = new Date();
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + 3); // Fetch per i prossimi 3 mesi, puoi modificare questo valore
+
+    fetch('/check_availability_range', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            'encrypted_id': productId,
+            'start_date': startDate.toISOString().split('T')[0],
+            'end_date': endDate.toISOString().split('T')[0],
+            'quantity': quantity
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        reservedDates = data;
+        updateCalendar();
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function updateCalendar() {
+    const quantity = parseInt(document.getElementById('quantity').value, 10);
+    calendar.removeAllEvents();
+
+    Object.entries(reservedDates).forEach(([date, info]) => {
+        calendar.addEvent({
+            start: date,
+            allDay: true,
+            backgroundColor: info.available ? 'green' : 'red',
+            borderColor: info.available ? 'green' : 'red',
+            title: info.available ? 'Disponibile' : 'Non Disponibile'
         });
+    });
+
+    if (bookingStart && bookingEnd) {
+        var startDate = new Date(bookingStart);
+        var endDate = new Date(bookingEnd);
+        while (startDate <= endDate) {
+            calendar.addEvent({
+                start: startDate,
+                allDay: true,
+                backgroundColor: 'yellow',
+                rendering: 'background'
+            });
+            startDate.setDate(startDate.getDate() + 1);
+        }
+    }
+}
+
+function handleDateSelect(selectInfo) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
-        document.getElementById('quantity').addEventListener('input', updateCalendar);  // Aggiorna il calendario quando cambia la quantità
-    
-        window.onload = initializeCalendar;
+    if (selectInfo.start < today) {
+        calendar.unselect();
+        return;
+    }
+
+    clickCount++;
+    if (clickCount === 1) {
+        bookingStart = selectInfo.startStr;
+        bookingEnd = null;
+        document.getElementById('booking-status').textContent = `Data di inizio: ${bookingStart}`;
+    } else if (clickCount === 2) {
+        bookingEnd = selectInfo.startStr;
+        if (new Date(bookingEnd) < new Date(bookingStart)) {
+            let temp = bookingStart;
+            bookingStart = bookingEnd;
+            bookingEnd = temp;
+        }
+        document.getElementById('booking-status').textContent += ` - Data di fine: ${bookingEnd}`;
+        document.getElementById('confirm-booking').style.display = 'inline-block';
+        updateCalendar();
+    } else {
+        resetSelection();
+    }
+}
+
+function resetSelection() {
+    clickCount = 0;
+    bookingStart = null;
+    bookingEnd = null;
+    document.getElementById('booking-status').textContent = '';
+    document.getElementById('confirm-booking').style.display = 'none';
+    updateCalendar();
+}
+
+document.getElementById('confirm-booking').addEventListener('click', function() {
+    const quantity = parseInt(document.getElementById('quantity').value, 10);
+    fetch('/process_booking/' + productId, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            'start_date': bookingStart,
+            'end_date': bookingEnd,
+            'quantity': quantity
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert('Prenotazione confermata dal ' + bookingStart + ' al ' + bookingEnd);
+            resetSelection();
+            fetchReservedDates(); // Aggiorna il calendario dopo la prenotazione
+        } else {
+            alert('Errore nella prenotazione: ' + data.message);
+        }
+    })
+    .catch(error => console.error('Error:', error));
+});
+
+document.getElementById('quantity').addEventListener('input', fetchReservedDates);
+
+window.onload = function() {
+    productId = document.getElementById('product-id').value; // Assicurati di avere un campo nascosto con l'ID del prodotto
+    initializeCalendar();
+};
     </script>
 
 
