@@ -602,3 +602,36 @@ def check_availability_range():
         date += timedelta(days=1)
 
     return jsonify(reserved_dates)
+
+@main_blueprint.route('/loan_requests')
+@login_required
+def loan_requests():
+    # Get outgoing loan requests
+    outgoing_requests = Loan.query.filter_by(borrower_id=current_user.id).all()
+    
+    # Get products marked as unavailable by the manager or owner
+    unavailable_loans = Loan.query.filter(
+        Loan.manager_id == current_user.id,
+        Loan.status == 'unavailable'
+    ).all()
+    
+    return render_template('backend/page-list-requests.html', outgoing_requests=outgoing_requests, unavailable_loans=unavailable_loans)
+
+
+@main_blueprint.route('/get_loan_details/<int:loan_id>', methods=['GET'])
+@login_required
+def get_loan_details(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+    if loan.borrower_id != current_user.id and loan.manager_id != current_user.id:
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
+
+    loan_details = {
+        'product_name': loan.product.name,
+        'quantity': loan.quantity,
+        'start_date': loan.start_date.strftime('%Y-%m-%d'),
+        'end_date': loan.end_date.strftime('%Y-%m-%d'),
+        'location': f"{loan.product.location.pavilion}, Room: {loan.product.location.room}, Cabinet: {loan.product.location.cabinet}",
+        'description': loan.product.description,
+        'managers': [{'name': manager.name, 'surname': manager.surname, 'email': manager.email} for manager in loan.product.managers]
+    }
+    return jsonify(loan_details)
