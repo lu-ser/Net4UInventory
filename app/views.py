@@ -529,6 +529,14 @@ def process_booking(encrypted_id):
     if not check_date_range_availability(product_id, start_date, end_date, quantity):
         return jsonify({'status': 'error', 'message': 'Not enough quantity available for the selected dates'}), 400
 
+    product = Product.query.get(product_id)
+
+    # Verifica se l'utente loggato è manager o owner del prodotto
+    if current_user.id == product.owner_id or current_user in product.managers:
+        status = 'unavailable'
+    else:
+        status = 'pending'
+
     new_loan = Loan(
         product_id=product_id,
         borrower_id=current_user.id,
@@ -536,7 +544,7 @@ def process_booking(encrypted_id):
         start_date=start_date,
         end_date=end_date,
         quantity=quantity,
-        status='pending'
+        status=status
     )
     db.session.add(new_loan)
     db.session.commit()
@@ -635,3 +643,48 @@ def get_loan_details(loan_id):
         'managers': [{'name': manager.name, 'surname': manager.surname, 'email': manager.email} for manager in loan.product.managers]
     }
     return jsonify(loan_details)
+
+@main_blueprint.route('/restore_unavailable/<int:loan_id>', methods=['POST'])
+@login_required
+def restore_unavailable(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+    if loan.status != 'unavailable':
+        return jsonify({'status': 'error', 'message': 'Loan is not marked as unavailable'}), 400
+    
+    if current_user.id != loan.manager_id:
+        return jsonify({'status': 'error', 'message': 'You are not authorized to perform this action'}), 403
+
+    db.session.delete(loan)
+    db.session.commit()
+    
+    return jsonify({'status': 'success', 'message': 'Product restored successfully'})
+
+@main_blueprint.route('/cancel_request/<int:loan_id>', methods=['POST'])
+@login_required
+def cancel_request(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+    if loan.status != 'pending':
+        return jsonify({'status': 'error', 'message': 'Only pending loans can be cancelled'}), 400
+
+    if current_user.id != loan.borrower_id:
+        return jsonify({'status': 'error', 'message': 'You are not authorized to perform this action'}), 403
+
+    loan.status = 'cancelled'
+    db.session.commit()
+
+    return jsonify({'status': 'success', 'message': 'Loan request cancelled successfully'})
+#### Rotta per Segnare un Prestito come "Returned"
+@main_blueprint.route('/mark_as_returned/<int:loan_id>', methods=['POST'])
+@login_required
+def mark_as_returned(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+    if loan.status != 'approved':
+        return jsonify({'status': 'error', 'message': 'Only approved loans can be marked as returned'}), 400
+
+    if current_user.id != loan.borrower_id:
+        return jsonify({'status': 'error', 'message': 'You are not authorized to perform this action'}), 403
+
+    loan.status = 'in_review'
+    db.session.commit()
+
+    return jsonify({'status': 'success', 'message': 'Loan marked as returned, awaiting review'})

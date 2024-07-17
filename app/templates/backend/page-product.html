@@ -182,21 +182,14 @@
 
         <div class="row">
             <div class="col-lg-12">
-                <div class="card-body">
-                    {% if is_owner_or_manager %}
-                    <form method="post" action="{{ url_for('main.set_product_unavailability', encrypted_id=auth_s.dumps(product.id)) }}">
-                        <div class="form-group">
-                            <label>Set Unavailability:</label>
-                            <input type="number" name="unavailability_quantity" class="form-control" placeholder="Quantity" required min="1" max="{{ product.quantity }}">
-                            <input type="date" name="start_date" class="form-control" required>
-                            <input type="date" name="end_date" class="form-control" required>
-                        </div>
-                        <button type="submit" class="btn btn-warning">Make Unavailable</button>
-                    </form>
-                    {% else %}
+
                     <div class="card-body">
                             <div class="form-group">
+                                {% if is_owner_or_manager %}
+                                <label>Make the Product unavailable:</label>
+                                {% else %}
                                 <label>Request Product:</label>
+                                {% endif %}
                             </div>
                             <div class="quantity-selector">
                                 <label for="quantity">Seleziona quantità:</label>
@@ -211,7 +204,7 @@
                             <div id="debug-log"></div>
                       </div>
                     </div>
-                    {% endif %}
+                    
                 </div>
             </div>
         </div>
@@ -391,7 +384,7 @@ function updateCalendar() {
             allDay: true,
             backgroundColor: info.available ? 'green' : 'red',
             borderColor: info.available ? 'green' : 'red',
-            title: info.available ? 'Disponibile' : 'Non Disponibile'
+            title: info.available ? 'Available' : 'Not available'
         });
     });
 

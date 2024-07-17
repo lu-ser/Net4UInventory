@@ -58,7 +58,14 @@
                 </div>
             </div>
             <div class="col-lg-12">
+                <div class="row mb-3">
+                    <div class="col-lg-4">
+                        <input type="text" id="searchInput" class="form-control" placeholder="Search...">
+                    
+                </div>
+            </div>
                     <div class="table-responsive rounded mb-3">
+                        
                         <table class="data-table table mb-0 tbl-server-info">
                             <thead class="bg-white text-uppercase">
                                 <tr class="ligth ligth-data">
@@ -96,6 +103,10 @@
                                         <div class="badge badge-success">Returned</div>
                                         {% elif order.status == 'unavailable' %}
                                         <div class="badge badge-dark">Unavailable</div>
+                                        {% elif order.status == 'in_review' %}
+                                        <div class="badge badge-primary">In Review</div>
+                                        {% elif order.status == 'cancelled' %}
+                                        <div class="badge badge-secondary">Cancelled</div>
                                         {% endif %}
                                     </td>
                                     <td>
@@ -104,7 +115,13 @@
                                                 href="#" onclick="showOrderDetails({{ order.id }})"><i class="ri-eye-line mr-0"></i></a>
                                             {% if order.status == 'pending' %}
                                             <a class="badge bg-warning mr-2" data-toggle="tooltip" data-placement="top" title="Cancel"
-                                                href="/cancel_request/{{ order.id }}"><i class="ri-delete-bin-line mr-0"></i></a>
+                                                href="#" onclick="cancelRequest({{ order.id }})"><i class="ri-delete-bin-line mr-0"></i></a>
+                                            {% elif order.status == 'unavailable' %}
+                                            <a class="badge bg-danger mr-2" data-toggle="tooltip" data-placement="top" title="Restore"
+                                                href="#" onclick="restoreUnavailable({{ order.id }})"><i class="ri-refresh-line mr-0"></i></a>
+                                            {% elif order.status == 'approved' %}
+                                            <a class="badge bg-primary mr-2" data-toggle="tooltip" data-placement="top" title="Mark as Returned"
+                                                href="#" onclick="markAsReturned({{ order.id }})"><i class="ri-check-line mr-0"></i></a>
                                             {% endif %}
                                         </div>
                                     </td>
@@ -233,6 +250,34 @@
     <!-- Table Treeview JavaScript -->
     <script src="../../static/js/table-treeview.js"></script>
     <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const searchInput = document.getElementById('searchInput');
+            const table = document.querySelector('.data-table');
+            const rows = table.querySelectorAll('tbody tr');
+    
+            searchInput.addEventListener('keyup', function() {
+                const query = searchInput.value.toLowerCase();
+    
+                rows.forEach(function(row) {
+                    const cells = row.querySelectorAll('td');
+                    let match = false;
+    
+                    cells.forEach(function(cell) {
+                        if (cell.textContent.toLowerCase().includes(query)) {
+                            match = true;
+                        }
+                    });
+    
+                    if (match) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        });
+    </script>
+    <script>
         $(function () {
             $('[data-toggle="tooltip"]').tooltip();
         });
@@ -266,7 +311,37 @@
     
     <!-- Chart Custom JavaScript -->
     <script async src="../../static/js/chart-custom.js"></script>
+    <script>
+        function cancelRequest(orderId) {
+            $.post('/cancel_request/' + orderId, function(response) {
+                if (response.status === 'success') {
+                    location.reload();
+                } else {
+                    alert(response.message);
+                }
+            });
+        }
     
+        function restoreUnavailable(orderId) {
+            $.post('/restore_unavailable/' + orderId, function(response) {
+                if (response.status === 'success') {
+                    location.reload();
+                } else {
+                    alert(response.message);
+                }
+            });
+        }
+    
+        function markAsReturned(orderId) {
+            $.post('/mark_as_returned/' + orderId, function(response) {
+                if (response.status === 'success') {
+                    location.reload();
+                } else {
+                    alert(response.message);
+                }
+            });
+        }
+    </script>
     <!-- app JavaScript -->
     <script src="../../static/js/app.js"></script>
   </body>

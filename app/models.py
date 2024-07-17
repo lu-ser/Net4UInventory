@@ -81,3 +81,5 @@ class Loan(db.Model):
     # Requests for loan extension
     extension_requested = db.Column(db.Boolean, default=False)
     new_end_date = db.Column(db.DateTime, nullable=True)
+    borrower = db.relationship('User', foreign_keys=[borrower_id], backref='borrowed_loans')
+    manager = db.relationship('User', foreign_keys=[manager_id], backref='managed_loans')
