@@ -688,3 +688,61 @@ def mark_as_returned(loan_id):
     db.session.commit()
 
     return jsonify({'status': 'success', 'message': 'Loan marked as returned, awaiting review'})
+
+@main_blueprint.route('/requests_for_my_products')
+@login_required
+def requests_for_my_products():
+    incoming_requests = Loan.query.join(Product).filter(
+        (Product.owner_id == current_user.id) | 
+        (Product.managers.any(User.id == current_user.id))
+    ).filter(Loan.status != 'unavailable').all()
+
+    unavailable_products = Loan.query.join(Product).filter(
+        (Product.owner_id == current_user.id) | 
+        (Product.managers.any(User.id == current_user.id))
+    ).filter(Loan.status == 'unavailable').all()
+
+    return render_template('backend/requests_for_my_products.html', incoming_requests=incoming_requests, unavailable_products=unavailable_products)
+
+
+@main_blueprint.route('/approve_request/<int:request_id>', methods=['POST'])
+@login_required
+def approve_request(request_id):
+    request = Loan.query.get(request_id)
+    if request and (request.product.owner_id == current_user.id or request.product.manager_id == current_user.id):
+        request.status = 'approved'
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Request approved successfully'})
+    return jsonify({'status': 'error', 'message': 'Request not found or not authorized'}), 404
+
+@main_blueprint.route('/reject_request/<int:request_id>', methods=['POST'])
+@login_required
+def reject_request(request_id):
+    request = Loan.query.get(request_id)
+    if request and (request.product.owner_id == current_user.id or request.product.manager_id == current_user.id):
+        request.status = 'rejected'
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Request rejected successfully'})
+    return jsonify({'status': 'error', 'message': 'Request not found or not authorized'}), 404
+
+@main_blueprint.route('/extend_loan/<int:loan_id>', methods=['POST'])
+@login_required
+def extend_loan(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+    new_end_date = request.form.get('new_end_date')
+
+    if not new_end_date:
+        return jsonify({'status': 'error', 'message': 'New termination date is required'}), 400
+
+    try:
+        new_end_date = datetime.strptime(new_end_date, '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify({'status': 'error', 'message': 'Invalid date format'}), 400
+
+    if loan.product.owner_id != current_user.id and not current_user in loan.product.managers:
+        return jsonify({'status': 'error', 'message': 'You are not authorized to extend this loan'}), 403
+
+    loan.end_date = new_end_date
+    db.session.commit()
+
+    return jsonify({'status': 'success', 'message': 'Loan extended successfully'})
