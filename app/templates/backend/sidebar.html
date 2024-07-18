@@ -82,13 +82,30 @@
                           </a>
                           <ul id="purchase" class="iq-submenu collapse" data-parent="#iq-sidebar-toggle">
                                   <li class="">
-                                          <a href="/loan_requests">
-                                              <i class="las la-minus"></i><span>Loan Requests</span>
+                                          <a href="/loan_requests?status=all">
+                                              <i class="las la-minus"></i><span>Loan Requests (ALL)</span>
                                           </a>
-                                          <a href="{{url_for('main.requests_for_my_products')}}">
-                                            <i class="las la-minus"></i><span>Requests for my Products</span>
-                                        </a>
                                   </li>
+                                  <li class="">
+                                    <a href="/loan_requests?status=in_review_pending">
+                                        <i class="las la-minus"></i><span>Pending/ Review</span>
+                                    </a>
+                            </li>
+                            <li class="">
+                                <a href="/loan_requests?status=approved">
+                                    <i class="las la-minus"></i><span>Approved</span>
+                                </a>
+                        </li>
+                        <li class="">
+                            <a href="/loan_requests?status=completed">
+                                <i class="las la-minus"></i><span>Completed</span>
+                            </a>
+                        </li>
+                        <li class="">
+                            <a href="/loan_requests?status=cancelled">
+                                <i class="las la-minus"></i><span>Cancelled</span>
+                            </a>
+                        </li>
                           </ul>
                       </li>
                       <li class=" ">
@@ -102,16 +119,26 @@
                               </svg>
                           </a>
                           <ul id="return" class="iq-submenu collapse" data-parent="#iq-sidebar-toggle">
+                                    <li class="">
+                                        <a href="/requests_for_my_products?status=all">
+                                            <i class="las la-minus"></i><span>All Returns</span>
+                                        </a>
+                                </li>
                                   <li class="">
-                                          <a href="/loan_requests">
-                                              <i class="las la-minus"></i><span>Pending/ Confirmed</span>
+                                          <a href="/requests_for_my_products?status=pending">
+                                              <i class="las la-minus"></i><span>Pending</span>
                                           </a>
                                   </li>
                                   <li class="">
-                                          <a href="/CompletedReturns">
-                                              <i class="las la-minus"></i><span>Returned</span>
+                                          <a href="/requests_for_my_products?status=approved">
+                                              <i class="las la-minus"></i><span>Approved</span>
                                           </a>
                                   </li>
+                                  <li class="">
+                                    <a href="/requests_for_my_products?status=completed">
+                                        <i class="las la-minus"></i><span>Completed</span>
+                                    </a>
+                            </li>
                           </ul>
                       </li>
                       <li class=" ">

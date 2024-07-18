@@ -614,16 +614,18 @@ def check_availability_range():
 @main_blueprint.route('/loan_requests')
 @login_required
 def loan_requests():
+    status = request.args.get('status', 'all')
+    
     # Get outgoing loan requests
-    outgoing_requests = Loan.query.filter_by(borrower_id=current_user.id).all()
+    outgoing_requests_query = Loan.query.filter_by(borrower_id=current_user.id)
     
-    # Get products marked as unavailable by the manager or owner
-    unavailable_loans = Loan.query.filter(
-        Loan.manager_id == current_user.id,
-        Loan.status == 'unavailable'
-    ).all()
+    if status == 'in_review_pending':
+        outgoing_requests_query = outgoing_requests_query.filter(Loan.status.in_(['in_review', 'pending']))
+    elif status != 'all':
+        outgoing_requests_query = outgoing_requests_query.filter(Loan.status == status)
     
-    return render_template('backend/page-list-requests.html', outgoing_requests=outgoing_requests, unavailable_loans=unavailable_loans)
+    outgoing_requests = outgoing_requests_query.all()
+    return render_template('backend/page-list-requests.html', outgoing_requests=outgoing_requests)
 
 
 @main_blueprint.route('/get_loan_details/<int:loan_id>', methods=['GET'])
@@ -692,17 +694,28 @@ def mark_as_returned(loan_id):
 @main_blueprint.route('/requests_for_my_products')
 @login_required
 def requests_for_my_products():
-    incoming_requests = Loan.query.join(Product).filter(
-        (Product.owner_id == current_user.id) | 
+    status = request.args.get('status', 'all')
+    
+    incoming_requests_query = Loan.query.join(Product).filter(
+        (Product.owner_id == current_user.id) |
         (Product.managers.any(User.id == current_user.id))
-    ).filter(Loan.status != 'unavailable').all()
+    )
+    
+    if status != 'all':
+        incoming_requests_query = incoming_requests_query.filter(Loan.status == status)
 
-    unavailable_products = Loan.query.join(Product).filter(
-        (Product.owner_id == current_user.id) | 
-        (Product.managers.any(User.id == current_user.id))
-    ).filter(Loan.status == 'unavailable').all()
+    incoming_requests = incoming_requests_query.all()
 
-    return render_template('backend/requests_for_my_products.html', incoming_requests=incoming_requests, unavailable_products=unavailable_products)
+    unavailable_products = Loan.query.filter(
+        (Loan.manager_id == current_user.id) &
+        (Loan.status == 'unavailable')
+    ).all()
+
+    return render_template(
+        'backend/requests_for_my_products.html',
+        incoming_requests=incoming_requests,
+        unavailable_products=unavailable_products
+    )
 
 
 @main_blueprint.route('/approve_request/<int:request_id>', methods=['POST'])
