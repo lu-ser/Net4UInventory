@@ -13,12 +13,18 @@
       <link rel="stylesheet" href="../../static/vendor/@fortawesome/fontawesome-free/css/all.min.css">
       <link rel="stylesheet" href="../../static/vendor/line-awesome/dist/line-awesome/css/line-awesome.min.css">
       <link rel="stylesheet" href="../../static/vendor/remixicon/fonts/remixicon.css">  </head>
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
       <style>
         .bg-light {
     background-color: #f8f9fa!important; /* Colore più chiaro per prodotti non attivi */
 }
       </style>
   <body class="  ">
+    <div id="flash-messages" style="display: none;" data-messages="{{ messages|default([])|tojson|safe }}"></div>
+    
+
     <!-- loader Start -->
     <div id="loading">
           <div id="loading-center">
@@ -213,7 +219,30 @@
 })
 
     </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+        
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                var messages = {{ messages|tojson|safe }};
+                if (messages && messages.length > 0) {
+                    messages.forEach(function(message) {
+                        Swal.fire({
+                            icon: message[0],
+                            title: message[1],
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000,
+                            timerProgressBar: true
+                        });
+                    });
+                }
+            });
+        </script>
     <!-- app JavaScript -->
     <script src="../../static/js/app.js"></script>
+
   </body>
 </html>

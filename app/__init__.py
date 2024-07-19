@@ -4,6 +4,7 @@ from .views import main_blueprint
 from .category_routes import category_blueprint
 from itsdangerous import URLSafeSerializer
 from .models import User
+from flask_session import Session
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -17,7 +18,8 @@ def create_app(config_name=None):
         app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1234@localhost:5432/Net4UInventory'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = 'your-secret-key'
-
+    app.config['SESSION_TYPE'] = 'filesystem'
+    Session(app)
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)

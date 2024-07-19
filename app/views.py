@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app
+from flask import Blueprint, render_template,session, redirect, url_for, flash, request, jsonify, current_app, get_flashed_messages
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -11,7 +11,7 @@ import csv
 from datetime import datetime
 from .utils.inventory_helpers import get_reserved_quantity, get_active_loans
 from datetime import datetime, timedelta
-
+from .utils.utils import flash_message
 main_blueprint = Blueprint('main', __name__)
 
 @main_blueprint.route('/')
@@ -246,8 +246,13 @@ def list_products():
     else:
         # Mostra tutti i prodotti sulla piattaforma
         products = Product.query.filter(Product.is_active == True)
-
-    return render_template('backend/page-list-product.html', products=products)
+    print("Session in list_products:", dict(session))
+    flash_message = session.pop('flash_message', None)
+    if flash_message:
+        flash(flash_message[1], flash_message[0])
+    
+    messages = get_flashed_messages(with_categories=True)
+    return render_template('backend/page-list-product.html', products=products, messages=messages)
 
 
 @main_blueprint.route('/toggle_product/<int:product_id>', methods=['POST'])
@@ -297,9 +302,7 @@ def view_product(encrypted_id):
                            reserved_dates=reserved_dates,
                            reserved_quantity=reserved_quantity)
 
-
 @main_blueprint.route('/update_product/<encrypted_id>', methods=['POST']) #TODO Fix del bottone aggiungi location
-#TODO Aggiungere bottone add category, project
 @login_required
 def update_product(encrypted_id):
     try:
@@ -330,11 +333,14 @@ def update_product(encrypted_id):
     try:
         db.session.commit()
         flash('Product updated successfully!', 'success')
+        print("Flash messages set:", get_flashed_messages(with_categories=True))
+        session['flash_message'] = ('success', 'Product updated successfully!')
     except Exception as e:
         db.session.rollback()
         flash(f'Error updating product: {str(e)}', 'error')
-
     return redirect(url_for('main.list_products'))
+
+
 
 
 @main_blueprint.route('/set_product_unavailability/<encrypted_id>', methods=['POST'])

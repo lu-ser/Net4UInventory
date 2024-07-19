@@ -14,6 +14,8 @@
       <link rel="stylesheet" href="../../static/vendor/@fortawesome/fontawesome-free/css/all.min.css">
       <link rel="stylesheet" href="../../static/vendor/line-awesome/dist/line-awesome/css/line-awesome.min.css">
       <link rel="stylesheet" href="../../static/vendor/remixicon/fonts/remixicon.css">
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
       <!-- FullCalendar CSS -->
       <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js"></script>
       <link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.css" rel="stylesheet">
@@ -45,9 +47,12 @@
     <link rel="stylesheet" href="../../static/assets/vendor/@fortawesome/fontawesome-free/css/all.min.css">
     <link rel="stylesheet" href="../../static/assets/vendor/line-awesome/dist/line-awesome/css/line-awesome.min.css">
     <link rel="stylesheet" href="../../static/assets/vendor/remixicon/fonts/remixicon.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
       
     </head>
   <body class="  ">
+
     <!-- loader Start -->
     <div id="loading">
           <div id="loading-center">
@@ -573,6 +578,22 @@ window.onload = function() {
 
     <!-- Chart Custom JavaScript -->
     <script async src="../../static/js/chart-custom.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            var messages = $('#flash-messages').data('messages');
+            if (messages) {
+                messages.forEach(function(message) {
+                    Swal.fire({
+                        icon: message[0],
+                        title: message[1]
+                    });
+                });
+            }
+        });
+    </script>
     
     <!-- app JavaScript -->
     <script src="../../static/js/app.js"></script>
