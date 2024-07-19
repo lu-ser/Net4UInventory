@@ -17,12 +17,14 @@ main_blueprint = Blueprint('main', __name__)
 @main_blueprint.route('/')
 @login_required
 def index():
-    return render_template('backend/index.html')
+    messages = get_flashed_messages(with_categories=True)
+    return render_template('backend/index.html', messages=messages)
 
 @main_blueprint.route('/logout')
 @login_required  # Assicurati che solo gli utenti loggati possano accedere a questa route
 def logout():
     logout_user()
+    flash('Logged out successfully.', 'success')
     return redirect(url_for('main.login'))  # Reindirizza l'utente alla pagina di login dopo il logout
 
 @main_blueprint.route('/addUser', methods=['POST'])
@@ -35,44 +37,44 @@ def register_user():
     # Verifica che il ruolo sia uno di quelli permessi
     allowed_roles = {'Professor', 'RTD', 'Researcher', 'PhDStudent', 'Scholar'}
     if role not in allowed_roles:
-        flash('Invalid role selected.')
-        return redirect(url_for('main.register_page'))  # Assicurati di avere una route e una funzione per 'register_page'
+        flash('Invalid role selected.','error')
+        return redirect(url_for('main.show_register_page'))  # Assicurati di avere una route e una funzione per 'register_page'
     # Controlla che l'email non sia già utilizzata
     if User.query.filter_by(email=email).first() is not None:
-        flash('Email already used.')
-        return redirect(url_for('main.register_page'))
+        flash('Email already used.','error')
+        return redirect(url_for('main.show_register_page'))
     # Crea un nuovo utente
     hashed_password = generate_password_hash(password)
     new_user = User(name=name, surname=surname, email=email, password_hash=hashed_password, role=role)
     db.session.add(new_user)
     db.session.commit()
-    flash('User successfully registered.')
+    flash('User successfully registered.','success')
     return redirect(url_for('main.login'))
 
 
 
 @main_blueprint.route('/login', methods=['GET', 'POST'])
 def login():
-    if current_user.is_authenticated:  # Controlla se l'utente è già loggato
-        return redirect(url_for('main.index'))  # Redirigi alla dashboard se già loggato
+    if current_user.is_authenticated:
+        return redirect(url_for('main.index'))
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password_hash, password):
             login_user(user)
-            return redirect(url_for('main.index'))  # Redirigi all'area protetta dopo il login
+            flash('Hello ' + user.name, category="success")
+            return redirect(url_for('main.index'))
         else:
-            flash('Invalid email or password.')
-            session['flash_message'] = ('error', 'Invalid email or password.')
+            flash('Invalid email or password.', 'error')
             return redirect(url_for('main.login'))
-    messages = get_flashed_messages(with_categories=True)
-    print(messages)
-    return render_template('backend/auth-sign-in.html',messages=messages)
+    return render_template('backend/auth-sign-in.html', messages=get_flashed_messages(with_categories=True))
+
 
 @main_blueprint.route('/register')
 def show_register_page():
-    return render_template('backend/register.html')
+    messages = get_flashed_messages(with_categories=True)
+    return render_template('backend/register.html',messages=messages)
 
 
 @main_blueprint.route('/add_product', methods=['POST', 'GET'])
@@ -335,7 +337,8 @@ def update_product(encrypted_id):
 
     try:
         db.session.commit()
-        session['flash_message'] = ('success', 'Product updated successfully!')
+        #session['flash_message'] = ('success', 'Product updated successfully!')
+        flash('Invalid email or password.','success')
     except Exception as e:
         db.session.rollback()
         flash(f'Error updating product: {str(e)}', 'error')
