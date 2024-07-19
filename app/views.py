@@ -2,6 +2,7 @@ from flask import Blueprint, render_template,session, redirect, url_for, flash, 
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from itsdangerous import URLSafeSerializer, URLSafeTimedSerializer, SignatureExpired, BadSignature
 import os
 from sqlalchemy import  func
 from .forms import LoginForm, RegistrationForm
@@ -11,7 +12,9 @@ import csv
 from datetime import datetime
 from .utils.inventory_helpers import get_reserved_quantity, get_active_loans
 from datetime import datetime, timedelta
-from .utils.utils import flash_message
+from .utils.utils import flash_message, send_email
+import hashlib
+
 main_blueprint = Blueprint('main', __name__)
 
 @main_blueprint.route('/')
@@ -76,6 +79,10 @@ def show_register_page():
     messages = get_flashed_messages(with_categories=True)
     return render_template('backend/register.html',messages=messages)
 
+@main_blueprint.route('/lost_password')
+def lost_password():
+    messages = get_flashed_messages(with_categories=True)
+    return render_template('backend/lost_password.html',messages=messages)
 
 @main_blueprint.route('/add_product', methods=['POST', 'GET'])
 @login_required
@@ -770,3 +777,87 @@ def extend_loan(loan_id):
     db.session.commit()
 
     return jsonify({'status': 'success', 'message': 'Loan extended successfully'})
+
+@main_blueprint.route('/reset_password_request', methods=['GET', 'POST'])
+def reset_password_request():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        user = User.query.filter_by(email=email).first()
+        if user:
+            token = generate_confirmation_token(user.email)
+            send_email('Reset Your Password', user.email, '/backend/reset_password', token=token)
+            flash('An email has been sent with instructions to reset your password.', 'info')
+            return redirect(url_for('main.login'))
+        else:
+            flash('Email address not found.', 'warning')
+    return redirect(url_for('main.lost_password'))
+
+def generate_confirmation_token(email):
+    serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    return serializer.dumps(email, salt=current_app.config['SECURITY_PASSWORD_SALT'])
+
+@main_blueprint.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    try:
+        email = confirm_token(token)
+        if email is False:
+            flash('The reset link is invalid or has expired.', 'danger')
+            return redirect(url_for('main.reset_password_request'))
+    except:
+        flash('An error occurred. Please try again.', 'danger')
+        return redirect(url_for('main.reset_password_request'))
+    
+    user = User.query.filter_by(email=email).first_or_404()
+
+    if request.method == 'POST':
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+        
+        if password != confirm_password:
+            flash('Passwords do not match.', 'danger')
+            return render_template('/backend/reset_password.html', token=token)
+
+        # Debug: Print the password (solo per scopi di debugging, rimuovi in produzione)
+        print(f"Password inserita: {password}")
+
+        # Debug: Genera un hash della password con un metodo noto
+        debug_hash = hashlib.sha256(password.encode()).hexdigest()
+        print(f"Debug hash: {debug_hash}")
+
+        # Salva la password
+        user.password = password
+
+        # Debug: Stampa l'hash della password salvata
+        print(f"Hash salvato: {user.password_hash}")
+
+        try:
+            db.session.commit()
+            
+            # Debug: Verifica se la password può essere verificata correttamente
+            if check_password_hash(user.password_hash, password):
+                print("La password può essere verificata correttamente.")
+            else:
+                print("ERRORE: La password non può essere verificata.")
+                
+        except Exception as e:
+            print(f"Errore durante il salvataggio: {str(e)}")
+            db.session.rollback()
+        
+        flash('Your password has been updated!', 'success')
+        return redirect(url_for('main.login'))
+    
+    return render_template('/backend/reset_password.html', token=token)
+
+def confirm_token(token, expiration=3600):
+    serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    try:
+        email = serializer.loads(
+            token,
+            salt=current_app.config['SECURITY_PASSWORD_SALT'],
+            max_age=expiration
+        )
+    except SignatureExpired:
+        return False  # valid token, but expired
+    except BadSignature:
+        return False  # invalid token
+    return email

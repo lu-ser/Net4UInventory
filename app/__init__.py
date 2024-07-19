@@ -1,10 +1,14 @@
 from flask import Flask, current_app
 from .extensions import db, migrate, login_manager, upload_dir
+from .extensions import mail
 from .views import main_blueprint
 from .category_routes import category_blueprint
 from itsdangerous import URLSafeSerializer
 from .models import User
 from flask_session import Session
+from flask import Flask
+from flask_mail import Mail
+from config import Config
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -19,12 +23,14 @@ def create_app(config_name=None):
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = 'your-secret-key'
     app.config['SESSION_TYPE'] = 'filesystem'
+    app.config['SECURITY_PASSWORD_SALT']="net4u_salt"
+    mail.init_app(app)
     Session(app)
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
     login_manager.login_view = 'main.login'
-
+    
     # Inizializza il serializer e aggiungilo come attributo dell'app per accesso globale
     app.auth_s = URLSafeSerializer(app.config['SECRET_KEY'])
 
