@@ -64,9 +64,11 @@ def login():
             return redirect(url_for('main.index'))  # Redirigi all'area protetta dopo il login
         else:
             flash('Invalid email or password.')
+            session['flash_message'] = ('error', 'Invalid email or password.')
             return redirect(url_for('main.login'))
-
-    return render_template('backend/auth-sign-in.html')
+    messages = get_flashed_messages(with_categories=True)
+    print(messages)
+    return render_template('backend/auth-sign-in.html',messages=messages)
 
 @main_blueprint.route('/register')
 def show_register_page():
@@ -182,6 +184,7 @@ def add_category():
             'message': 'Error adding category',
             'error': str(e)
         }), 400
+        
 
 
 @main_blueprint.route('/add_location', methods=['POST'])
@@ -332,12 +335,11 @@ def update_product(encrypted_id):
 
     try:
         db.session.commit()
-        flash('Product updated successfully!', 'success')
-        print("Flash messages set:", get_flashed_messages(with_categories=True))
         session['flash_message'] = ('success', 'Product updated successfully!')
     except Exception as e:
         db.session.rollback()
         flash(f'Error updating product: {str(e)}', 'error')
+        session['flash_message'] = ('error', 'An error occured')
     return redirect(url_for('main.list_products'))
 
 

@@ -1,0 +1,18 @@
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var messages = {{ messages|tojson|safe }};
+        if (messages && messages.length > 0) {
+            messages.forEach(function(message) {
+                Swal.fire({
+                    icon: message[0],
+                    title: message[1],
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 5000,
+                    timerProgressBar: true
+                });
+            });
+        }
+    });
+</script>
