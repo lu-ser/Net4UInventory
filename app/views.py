@@ -861,3 +861,92 @@ def confirm_token(token, expiration=3600):
     except BadSignature:
         return False  # invalid token
     return email
+
+
+@main_blueprint.route('/users')
+@login_required
+def users():
+    return render_template('/backend/page-list-users.html', users=users)
+
+@main_blueprint.route('/apiusers')
+@login_required
+def api_users():
+    page = request.args.get('page', 1, type=int)
+    search = request.args.get('search', '', type=str)
+    per_page = 10
+
+    if search:
+        users_query = User.query.filter(
+    (User.name.ilike(f'%{search}%')) |
+    (User.surname.ilike(f'%{search}%')) |
+    (User.role.ilike(f'%{search}%'))
+)
+
+    else:
+        users_query = User.query
+
+    users_pagination = users_query.paginate(page=page, per_page=per_page)
+    users = users_pagination.items
+
+    users_list = []
+    for user in users:
+        users_list.append({
+            'name': user.name,
+            'surname': user.surname,
+            'email': user.email,
+            'role':user.role
+        })
+
+    return jsonify({
+        'users': users_list,
+        'pagination': {
+            'page': users_pagination.page,
+            'pages': users_pagination.pages,
+            'total': users_pagination.total,
+            'prev_num': users_pagination.prev_num,
+            'next_num': users_pagination.next_num,
+            'has_prev': users_pagination.has_prev,
+            'has_next': users_pagination.has_next,
+        }
+    })
+
+@main_blueprint.route('/editProfile')
+@login_required
+def userprof():
+    messages = get_flashed_messages(with_categories=True)
+    return render_template('/backend/user-profile-edit.html',messages=messages)
+
+@main_blueprint.route('/change_password_form', methods=['GET', 'POST'])
+@login_required
+def change_password_form():
+    if request.method == 'POST':
+        password = request.form.get('newpassword')
+        confirm_password = request.form.get('validation')
+        if password != confirm_password:
+            flash('Passwords do not match.', 'danger')
+            return render_template('change_password.html')
+        # Trova l'utente corrente (questo presuppone che tu abbia un modo per identificare l'utente corrente)
+        user = User.query.filter_by(email=current_user.email).first_or_404()
+        if user:
+            # Salva la nuova password
+            user.password_hash = generate_password_hash(password)
+            try:
+                db.session.commit()
+                
+                # Debug: Verifica se la password può essere verificata correttamente
+                if check_password_hash(user.password_hash, password):
+                    print("La password può essere verificata correttamente.")
+                else:
+                    print("ERRORE: La password non può essere verificata.")
+            except Exception as e:
+                print(f"Errore durante il salvataggio: {str(e)}")
+                db.session.rollback()
+                flash('An error occurred while updating your password. Please try again.', 'danger')
+                return render_template('change_password.html')
+
+            flash('Your password has been updated!', 'success')
+            return redirect(url_for('main.login'))
+        else:
+            flash('User not found.', 'danger')
+
+    return render_template('change_password.html')
