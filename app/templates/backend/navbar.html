@@ -243,8 +243,8 @@
                                                 {% endif %}
                                                 <div class="d-flex align-items-center justify-content-center mt-3">
                                                     {% if current_user.is_authenticated %}
-                                                        <a href="user_profile" class="btn border mr-2">Profile</a>
-                                                        <a href="/requestsList" class="btn border mr-2">Requests</a>
+                                                        <a href="/editProfile" class="btn border mr-2">Profile</a>
+                                                        <a href="/loan_requests?status=all" class="btn border mr-2">Requests</a>
                                                         <a href="/logout" class="btn border">Sign Out</a>
                                                     {% else %}
                                                         <a href="/login" class="btn border">Sign In</a>  <!-- Assumendo che esista una pagina di login -->

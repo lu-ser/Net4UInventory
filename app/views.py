@@ -14,6 +14,14 @@ from .utils.inventory_helpers import get_reserved_quantity, get_active_loans
 from datetime import datetime, timedelta
 from .utils.utils import flash_message, send_email
 import hashlib
+from flask import make_response
+import csv
+from io import StringIO
+import openpyxl
+from openpyxl import Workbook
+from openpyxl.worksheet.datavalidation import DataValidation
+from flask import send_file
+import io
 
 main_blueprint = Blueprint('main', __name__)
 
@@ -925,7 +933,6 @@ def change_password_form():
         if password != confirm_password:
             flash('Passwords do not match.', 'danger')
             return render_template('change_password.html')
-        # Trova l'utente corrente (questo presuppone che tu abbia un modo per identificare l'utente corrente)
         user = User.query.filter_by(email=current_user.email).first_or_404()
         if user:
             # Salva la nuova password
@@ -950,3 +957,229 @@ def change_password_form():
             flash('User not found.', 'danger')
 
     return render_template('change_password.html')
+
+
+
+@main_blueprint.route('/download_excel_template', methods=['GET'])
+@login_required
+def download_excel_template():
+    # Recupera i dati dal database
+    categories = Category.query.all()
+    projects = Project.query.all()
+    locations = Location.query.all()
+    managers = User.query.all()  # Aggiungi questa riga per recuperare gli utenti
+
+    # Crea un nuovo workbook e attiva il foglio
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Product Template"
+
+    # Definisci le intestazioni
+    headers = ["Name", "Unique Code", "Description", "Pavilion", "Room", "Cabinet", "Project", "Categories", "Quantity", "Managers"]
+    ws.append(headers)
+
+    # Aggiungi un esempio
+    example = ["Example Name", "Example Code", "Example Description", "Example Pavilion", "Example Room", "Example Cabinet", "Example Project", "Example Category", 1, "Example Manager"]
+    ws.append(example)
+
+    # Aggiungi una nuova scheda per i valori dei menu a tendina
+    ws_data = wb.create_sheet(title="Data")
+    ws_data.sheet_state = 'hidden'  # Nascondi la scheda
+
+    # Aggiungi i dati di validazione
+    category_list = [category.name for category in categories]
+    project_list = [project.name for project in projects]
+    pavilion_list = list(set([location.pavilion for location in locations]))
+    room_list = list(set([location.room for location in locations if location.room]))
+    cabinet_list = list(set([location.cabinet for location in locations if location.cabinet]))
+    manager_list = [f"{user.name} {user.surname}" for user in managers]
+
+    # Inserisci i dati nella scheda nascosta
+    for idx, category in enumerate(category_list, start=1):
+        ws_data[f'A{idx}'] = category
+    for idx, project in enumerate(project_list, start=1):
+        ws_data[f'B{idx}'] = project
+    for idx, pavilion in enumerate(pavilion_list, start=1):
+        ws_data[f'C{idx}'] = pavilion
+    for idx, room in enumerate(room_list, start=1):
+        ws_data[f'D{idx}'] = room
+    for idx, cabinet in enumerate(cabinet_list, start=1):
+        ws_data[f'E{idx}'] = cabinet
+    for idx, manager in enumerate(manager_list, start=1):
+        ws_data[f'F{idx}'] = manager
+
+    # Definisci gli intervalli di nomi
+    category_range = f'Data!$A$1:$A${len(category_list)}'
+    project_range = f'Data!$B$1:$B${len(project_list)}'
+    pavilion_range = f'Data!$C$1:$C${len(pavilion_list)}'
+    room_range = f'Data!$D$1:$D${len(room_list)}'
+    cabinet_range = f'Data!$E$1:$E${len(cabinet_list)}'
+    manager_range = f'Data!$F$1:$F${len(manager_list)}'
+
+    # Aggiungi la validazione dei dati
+    dv_categories = DataValidation(type="list", formula1=category_range, allow_blank=True)
+    dv_projects = DataValidation(type="list", formula1=project_range, allow_blank=True)
+    dv_pavilions = DataValidation(type="list", formula1=pavilion_range, allow_blank=True)
+    dv_rooms = DataValidation(type="list", formula1=room_range, allow_blank=True)
+    dv_cabinets = DataValidation(type="list", formula1=cabinet_range, allow_blank=True)
+    dv_managers = DataValidation(type="list", formula1=manager_range, allow_blank=True)
+
+    ws.add_data_validation(dv_categories)
+    ws.add_data_validation(dv_projects)
+    ws.add_data_validation(dv_pavilions)
+    ws.add_data_validation(dv_rooms)
+    ws.add_data_validation(dv_cabinets)
+    ws.add_data_validation(dv_managers)
+
+    # Applica la validazione delle colonne appropriate
+    max_row = ws.max_row + 1000  # aggiunge 1000 righe per validazione
+    dv_categories.add(f'H2:H{max_row}')
+    dv_projects.add(f'G2:G{max_row}')
+    dv_pavilions.add(f'D2:D{max_row}')
+    dv_rooms.add(f'E2:E{max_row}')
+    dv_cabinets.add(f'F2:F{max_row}')
+    dv_managers.add(f'J2:J{max_row}')
+
+    # Salva il workbook in un oggetto BytesIO
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name='product_template.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
+
+@main_blueprint.route('/upload_excel', methods=['POST'])
+@login_required
+def upload_excel():
+    if 'file' not in request.files:
+        flash('No file part', 'error')
+        return redirect(url_for('main.add_product'))
+    
+    file = request.files['file']
+    if file.filename == '':
+        flash('No selected file', 'error')
+        return redirect(url_for('main.add_product'))
+    
+    if file and file.filename.endswith(('.xlsx', '.xls')):
+        filename = secure_filename(file.filename)
+        
+        # Crea la cartella 'temp' se non esiste
+        temp_folder = os.path.join(current_app.root_path, 'temp')
+        os.makedirs(temp_folder, exist_ok=True)
+        
+        file_path = os.path.join(temp_folder, filename)
+        file.save(file_path)
+        
+        try:
+            wb = openpyxl.load_workbook(file_path)
+            ws = wb.active
+            
+            products_data = []
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                if not any(row):  # Skip empty rows
+                    continue
+                name, code, description, pavilion, room, cabinet, project, categories, quantity, managers = row
+                
+                products_data.append({
+                    'name': name,
+                    'code': code,
+                    'description': description,
+                    'pavilion': pavilion,
+                    'room': room,
+                    'cabinet': cabinet,
+                    'project': project,
+                    'categories': categories.split(',') if categories else [],
+                    'quantity': quantity,
+                    'managers': managers.split(',') if managers else []
+                })
+        except Exception as e:
+            flash(f'Error processing file: {str(e)}', 'error')
+            return redirect(url_for('main.add_product'))
+        finally:
+            os.remove(file_path)  # Remove the temporary file
+        
+        return render_template('backend/confirm_products.html', products=products_data)
+    else:
+        flash('Invalid file type. Please upload an Excel file.', 'error')
+        return redirect(url_for('main.add_product'))
+    
+@main_blueprint.route('/process_products', methods=['POST'])
+@login_required
+def process_products():
+    products_count = int(request.form.get('products_count', 0))
+    for i in range(products_count):
+        name = request.form.get(f'name_{i}')
+        code = request.form.get(f'code_{i}')
+        description = request.form.get(f'description_{i}')
+        pavilion = request.form.get(f'pavilion_{i}')
+        room = request.form.get(f'room_{i}')
+        cabinet = request.form.get(f'cabinet_{i}')
+        project_name = request.form.get(f'project_{i}')
+        categories = request.form.get(f'categories_{i}').split(',')
+        quantity = int(request.form.get(f'quantity_{i}'))
+        managers = request.form.getlist(f'managers_{i}')
+
+        # Find or create location
+        location = Location.query.filter_by(pavilion=pavilion, room=room, cabinet=cabinet).first()
+        if not location:
+            location = Location(pavilion=pavilion, room=room, cabinet=cabinet)
+            db.session.add(location)
+
+        # Find or create project
+        project = Project.query.filter_by(name=project_name).first()
+        if not project:
+            project = Project(name=project_name)
+            db.session.add(project)
+
+        # Find or create categories
+        category_objects = []
+        for cat_name in categories:
+            category = Category.query.filter_by(name=cat_name.strip()).first()
+            if not category:
+                category = Category(name=cat_name.strip())
+                db.session.add(category)
+            category_objects.append(category)
+
+        # Create product
+        product = Product(
+            name=name,
+            unique_code=code,
+            description=description,
+            location=location,
+            project=project,
+            categories=category_objects,
+            quantity=quantity,
+            owner_id=current_user.id
+        )
+        db.session.add(product)
+
+        # Add managers
+        for manager_name in managers:
+            name_parts = manager_name.strip().split()
+            if len(name_parts) >= 2:
+                user = User.query.filter_by(name=name_parts[0], surname=name_parts[-1]).first()
+                if user:
+                    product_manager = ProductManager(product=product, user=user)
+                    db.session.add(product_manager)
+                else:
+                    flash(f'Manager not found: {manager_name}', 'warning')
+
+    db.session.commit()
+    flash('Products created successfully!', 'success')
+    return redirect(url_for('main.add_product'))
+
+
+@main_blueprint.route('/search_managers', methods=['GET'])
+@login_required
+def search_managers():
+    term = request.args.get('term', '')
+    managers = User.query.filter(
+        (User.name.ilike(f'%{term}%') | User.surname.ilike(f'%{term}%')) &
+        (User.id != current_user.id)
+    ).all()
+    return jsonify([{'id': m.id, 'name': m.name, 'surname': m.surname} for m in managers])

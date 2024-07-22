@@ -140,14 +140,15 @@
                         
   
                         <h5 class="card-title">Bulk Upload Products</h5>
-                        <form action="/upload_csv" method="POST" enctype="multipart/form-data">
+                        <form action="/upload_excel" method="POST" enctype="multipart/form-data">
                             <div class="form-group">
-                                <label>Upload CSV File</label>
-                                <input type="file" name="file" accept=".csv" required class="form-control">
+                                <label>Upload Excel File</label>
+                                <input type="file" name="file" accept=".xlsx" required class="form-control">
                             </div>
-                            <a href="/download_csv_template" class="btn btn-info">Download CSV Template</a>
+                            <a href="/download_excel_template" class="btn btn-info">Download Excel Template</a>
                             <button type="submit" class="btn btn-success">Upload</button>
                         </form>
+                        
                     </div>
                     <div class="card-body">
                         <form action="/add_product" method="POST" enctype="multipart/form-data" data-toggle="validator">
