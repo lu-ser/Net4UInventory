@@ -137,16 +137,14 @@
                                     <div class="form-group">
                                         <label>Managers</label>
                                         <div class="managers-container" id="managers-container-{{ loop.index0 }}">
-                                            {% for manager in product.managers %}
-                                            <div class="input-group mb-2">
-                                                <input type="text" class="form-control manager-input" name="managers_{{ loop.index0 }}" value="{{ manager }}" readonly>
-                                                <div class="input-group-append">
-                                                    <button type="button" class="btn btn-danger remove-manager">Remove</button>
-                                                </div>
-                                            </div>
-                                            {% endfor %}
+                                            <select class="form-control manager-select" name="managers_{{ loop.index0 }}[]" multiple="multiple">
+                                                {% for manager in all_users %}
+                                                    <option value="{{ manager.id }}" {% if manager in product.managers %}selected{% endif %}>
+                                                        {{ manager.name }} {{ manager.surname }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
                                         </div>
-                                        <button type="button" class="btn btn-primary add-manager" data-index="{{ loop.index0 }}">Add Manager</button>
                                     </div>
                                 </div>
                                 <div class="card-footer">
@@ -155,9 +153,17 @@
                             </div>
                             {% endfor %}
                         </div>
-                        <button type="button" id="addProduct" class="btn btn-success mb-3">Add Product</button>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <button type="button" id="addProduct" class="btn btn-success mb-3">Add Product</button>
+                            </div>
+                        </div>
                         <input type="hidden" id="productsCount" name="products_count" value="{{ products|length }}">
-                        <button type="submit" class="btn btn-primary">Confirm and Create Products</button>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <button type="submit" class="btn btn-primary">Confirm and Create Products</button>
+                            </div>
+                        </div>
                     </form>
                                         
                 </div>
@@ -220,85 +226,79 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             let productIndex = {{ products|length }};
+            let allUsers = {{ all_users | tojson | safe }};
         
-            // Add new product
-            document.getElementById('addProduct').addEventListener('click', function() {
+            // Inizializza Select2 per i manager esistenti
+            $('.manager-select').select2({
+                width: '100%',
+                placeholder: 'Select managers',
+                allowClear: true
+            });
+        
+            // Funzione per aggiungere un nuovo prodotto
+            function addProduct() {
                 const container = document.getElementById('productsContainer');
                 const newProduct = document.createElement('div');
                 newProduct.className = 'card mb-4 product-card';
                 newProduct.innerHTML = `
                     <div class="card-body">
-                        <!-- Repeat the structure of a product card here -->
-                        <!-- Make sure to use ${productIndex} for all name attributes -->
+                        <!-- ... (il resto del codice rimane invariato) ... -->
+                        <div class="form-group">
+                            <label>Managers</label>
+                            <div class="managers-container" id="managers-container-${productIndex}">
+                                <select class="form-control manager-select" name="managers_${productIndex}[]" multiple="multiple">
+                                    ${allUsers.map(user => `<option value="${user.id}">${user.name} ${user.surname}</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
                     </div>
                     <div class="card-footer">
                         <button type="button" class="btn btn-danger remove-product">Remove Product</button>
                     </div>
                 `;
                 container.appendChild(newProduct);
+                
+                // Inizializza Select2 per il nuovo prodotto
+                $(newProduct).find('.manager-select').select2({
+                    width: '100%',
+                    placeholder: 'Select managers',
+                    allowClear: true
+                });
+        
                 productIndex++;
                 document.getElementById('productsCount').value = productIndex;
-            });
+                updateRemoveButtons();
+            }
         
-            // Remove product
+            // Event listener per aggiungere un nuovo prodotto
+            document.getElementById('addProduct').addEventListener('click', addProduct);
+        
+            // Rimuovi prodotto
             document.addEventListener('click', function(e) {
                 if (e.target && e.target.classList.contains('remove-product')) {
-                    e.target.closest('.product-card').remove();
-                    updateProductsCount();
+                    if (document.querySelectorAll('.product-card').length > 1) {
+                        e.target.closest('.product-card').remove();
+                        updateProductsCount();
+                        updateRemoveButtons();
+                    }
                 }
             });
         
-            // Add manager
-            document.addEventListener('click', function(e) {
-                if (e.target && e.target.classList.contains('add-manager')) {
-                    const index = e.target.getAttribute('data-index');
-                    $('#managerModal').modal('show');
-                    $('#managerModal').attr('data-product-index', index);
-                }
-            });
-        
-            // Remove manager
-            document.addEventListener('click', function(e) {
-                if (e.target && e.target.classList.contains('remove-manager')) {
-                    e.target.closest('.input-group').remove();
-                }
-            });
-        
-            // Manager search
-            document.getElementById('managerSearch').addEventListener('input', function() {
-                const searchTerm = this.value.toLowerCase();
-                fetch(`/search_managers?term=${searchTerm}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        const managerList = document.getElementById('managerList');
-                        managerList.innerHTML = '';
-                        data.forEach(manager => {
-                            const managerElement = document.createElement('div');
-                            managerElement.className = 'manager-option';
-                            managerElement.textContent = `${manager.name} ${manager.surname}`;
-                            managerElement.addEventListener('click', function() {
-                                const productIndex = $('#managerModal').attr('data-product-index');
-                                const container = document.getElementById(`managers-container-${productIndex}`);
-                                const newRow = document.createElement('div');
-                                newRow.className = 'input-group mb-2';
-                                newRow.innerHTML = `
-                                    <input type="text" class="form-control manager-input" name="managers_${productIndex}" value="${manager.name} ${manager.surname}" readonly>
-                                    <div class="input-group-append">
-                                        <button type="button" class="btn btn-danger remove-manager">Remove</button>
-                                    </div>
-                                `;
-                                container.appendChild(newRow);
-                                $('#managerModal').modal('hide');
-                            });
-                            managerList.appendChild(managerElement);
-                        });
-                    });
-            });
+            // Funzione per aggiornare i pulsanti di rimozione
+            function updateRemoveButtons() {
+                const removeButtons = document.querySelectorAll('.remove-product');
+                removeButtons.forEach((button, index) => {
+                    button.disabled = (removeButtons.length === 1);
+                });
+            }
         
             function updateProductsCount() {
                 const count = document.querySelectorAll('.product-card').length;
                 document.getElementById('productsCount').value = count;
             }
+        
+            // Setup iniziale
+            updateRemoveButtons();
         });
         </script>
         

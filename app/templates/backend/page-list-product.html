@@ -92,50 +92,51 @@
                         </thead>
                         <tbody class="ligth-body">
                             {% for product in products %}
-                            <tr class="{{ 'bg-light' if not product.is_active }}">
-                                <td>
-                                    <div class="checkbox d-inline-block">
-                                        <input type="checkbox" class="checkbox-input" id="checkbox{{ loop.index + 1 }}">
-                                        <label for="checkbox{{ loop.index + 1 }}" class="mb-0"></label>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <!-- Assumi che ci sia un campo 'image_url' oppure gestisci la mancanza di immagine -->
-                                        <img src="{{ product.image_url | default('path/to/default/image.jpg') }}" class="img-fluid rounded avatar-50 mr-3" alt="image">
-                                        <div>
-                                            {{ product.name }}
-                                            <p class="mb-0"><small>{{ product.description }}</small></p>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>{{ product.unique_code }}</td>
-                                <td>{{ product.categories | map(attribute='name') | join(', ') }}</td>
-                                <td>{{ product.quantity }}</td>
-                                <td>
-                                    {% if product.managers | length > 2 %}
-                                        <a href="/managers/{{ product.id }}">View all managers</a>
-                                    {% else %}
-                                        {{ product.managers | map(attribute='username') | join(', ') }}
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center list-action">
-                                        <a class="badge {{ 'badge-secondary' if not product.is_active else 'badge-info' }} mr-2" data-toggle="tooltip" data-placement="top" title="" data-original-title="{{ 'Hidden' if not product.is_active else 'View' }}"
-                                        href="{{ url_for('main.view_product', encrypted_id=auth_s.dumps(product.id)) }}">
-                                        <i class="{{ 'ri-eye-off-line' if not product.is_active else 'ri-eye-line' }} mr-0"></i>
-                                        </a>
-                                        <a class="badge bg-success mr-2" data-toggle="tooltip" data-placement="top" title="" data-original-title="Edit"
-                                            href="{{ url_for('main.view_product', encrypted_id=auth_s.dumps(product.id)) }}">
-                                            <i class="ri-pencil-line mr-0"></i>
-                                        </a>
-                                        <a class="badge bg-warning mr-2" data-toggle="tooltip" data-placement="top" title="" data-original-title="Delete"
-                                            href="{{ url_for('main.view_product', encrypted_id=auth_s.dumps(product.id)) }}">
-                                            <i class="ri-delete-bin-line mr-0"></i>
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
+                                {% if product.is_active or (current_user.id == product.owner_id or current_user in product.managers) %}
+                                    <tr class="{{ 'bg-light' if not product.is_active }}">
+                                        <td>
+                                            <div class="checkbox d-inline-block">
+                                                <input type="checkbox" class="checkbox-input" id="checkbox{{ loop.index + 1 }}">
+                                                <label for="checkbox{{ loop.index + 1 }}" class="mb-0"></label>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <img src="{{ product.image_url | default('path/to/default/image.jpg') }}" class="img-fluid rounded avatar-50 mr-3" alt="image">
+                                                <div>
+                                                    {{ product.name }}
+                                                    <p class="mb-0"><small>{{ product.description }}</small></p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ product.unique_code }}</td>
+                                        <td>{{ product.categories | map(attribute='name') | join(', ') }}</td>
+                                        <td>{{ product.quantity }}</td>
+                                        <td>{% for manager in product.managers %}
+                                            <span class="manager-initial" data-toggle="tooltip" data-placement="top" title="{{ manager.name }} {{ manager.surname }} ({{ manager.email }})">
+                                                {{ manager.name[0] }}{{ manager.surname[0] }},
+                                            </span>
+                                            {% endfor %}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center list-action">
+                                                    <a class="badge badge-info mr-2" data-toggle="tooltip" data-placement="top" title="View" href="{{ url_for('main.view_product', encrypted_id=auth_s.dumps(product.id)) }}">
+                                                        <i class="ri-eye-line mr-0"></i>
+                                                    </a>
+                                                {% if current_user.id == product.owner_id or current_user in product.managers %}
+                                                        {% if product.is_active %}
+                                                            <a class="badge badge-warning mr-2" data-toggle="tooltip" data-placement="top" title="Hide" href="{{ url_for('main.toggle_product', product_id=product.id) }}">
+                                                                <i class="ri-delete-bin-line mr-0"></i>
+                                                            </a>
+                                                        {% else %}
+                                                            <a class="badge badge-success mr-2" data-toggle="tooltip" data-placement="top" title="Restore" href="{{ url_for('main.toggle_product', product_id=product.id) }}">
+                                                                <i class="ri-refresh-line mr-0"></i>
+                                                            </a>
+                                                        {% endif %}
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endif %}
                             {% endfor %}
                         </tbody>
                     </table>

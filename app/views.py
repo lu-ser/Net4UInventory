@@ -22,6 +22,9 @@ from openpyxl import Workbook
 from openpyxl.worksheet.datavalidation import DataValidation
 from flask import send_file
 import io
+from sqlalchemy import or_
+from sqlalchemy.exc import IntegrityError
+
 
 main_blueprint = Blueprint('main', __name__)
 
@@ -258,14 +261,15 @@ def add_project():
 def list_products():
     user_only = request.args.get('user_only', 'false').lower() in ['true', '1', 't']
     if user_only:
-        # Mostra solo i prodotti attivi dell'utente e quelli per cui è manager
-        products = Product.query.filter(Product.owner_id == current_user.id).all()
-        # Includere anche i prodotti gestiti dall'utente
-        managed_products = Product.query.join(Product.managers).filter(User.id == current_user.id, Product.is_active == True).all()
-        products.extend(managed_products)
+        # Mostra solo i prodotti dell'utente e quelli per cui è manager
+        products = Product.query.filter(
+            (Product.owner_id == current_user.id) |
+            (Product.managers.any(User.id == current_user.id))
+        ).distinct().all()
     else:
         # Mostra tutti i prodotti sulla piattaforma
-        products = Product.query.filter(Product.is_active == True)
+        products = Product.query.all()
+
     print("Session in list_products:", dict(session))
     flash_message = session.pop('flash_message', None)
     if flash_message:
@@ -274,17 +278,54 @@ def list_products():
     messages = get_flashed_messages(with_categories=True)
     return render_template('backend/page-list-product.html', products=products, messages=messages)
 
+@main_blueprint.route('/list_disabled_products')
+@login_required
+def list_disabled_products():
+    return _render_product_list(disabled_only=True)
 
-@main_blueprint.route('/toggle_product/<int:product_id>', methods=['POST'])
+def _render_product_list(disabled_only=False):
+    user_only = request.args.get('user_only', 'false').lower() in ['true', '1', 't']
+    
+    query = Product.query
+
+    if user_only:
+        # Mostra solo i prodotti dell'utente e quelli per cui è manager
+        query = query.filter(
+            or_(Product.owner_id == current_user.id,
+                Product.managers.any(User.id == current_user.id))
+        )
+
+    if disabled_only:
+        query = query.filter_by(is_active=False)
+    
+    products = query.distinct().all()
+
+    print("Session in list_products:", dict(session))
+    flash_message = session.pop('flash_message', None)
+    if flash_message:
+        flash(flash_message[1], flash_message[0])
+    
+    messages = get_flashed_messages(with_categories=True)
+    
+    template = 'backend/page-list-product.html'
+    return render_template(template, products=products, messages=messages, disabled_only=disabled_only)
+
+@main_blueprint.route('/toggle_product/<int:product_id>', methods=['GET'])
 @login_required
 def toggle_product(product_id):
     product = Product.query.get_or_404(product_id)
-    if current_user.id == product.owner_id or current_user in product.managers:
-        product.is_active = not product.is_active
-        db.session.commit()
-        return jsonify({'success': 'Product visibility updated', 'is_active': product.is_active})
-    return jsonify({'error': 'Unauthorized'}), 403
 
+    # Controlla se l'utente è il proprietario o un manager del prodotto
+    if product.owner_id != current_user.id and current_user not in product.managers:
+        flash("Non hai i permessi per modificare questo prodotto.", "danger")
+        return redirect(url_for('main.list_products'))
+
+    # Toggle is_active
+    product.is_active = not product.is_active
+    db.session.commit()
+
+    flash("Lo stato del prodotto è stato aggiornato.", "success")
+    return redirect(url_for('main.list_products'))
 
 @main_blueprint.route('/product/<encrypted_id>')
 @login_required
@@ -1102,8 +1143,11 @@ def upload_excel():
             return redirect(url_for('main.add_product'))
         finally:
             os.remove(file_path)  # Remove the temporary file
+
+        # Serializza solo i dati necessari degli utenti
+        all_users = [{'id': user.id, 'name': user.name, 'surname': user.surname} for user in User.query.all()]
         
-        return render_template('backend/confirm_products.html', products=products_data)
+        return render_template('backend/confirm_products.html', products=products_data, all_users=all_users)
     else:
         flash('Invalid file type. Please upload an Excel file.', 'error')
         return redirect(url_for('main.add_product'))
@@ -1112,6 +1156,8 @@ def upload_excel():
 @login_required
 def process_products():
     products_count = int(request.form.get('products_count', 0))
+    error_occurred = False
+
     for i in range(products_count):
         name = request.form.get(f'name_{i}')
         code = request.form.get(f'code_{i}')
@@ -1120,58 +1166,93 @@ def process_products():
         room = request.form.get(f'room_{i}')
         cabinet = request.form.get(f'cabinet_{i}')
         project_name = request.form.get(f'project_{i}')
-        categories = request.form.get(f'categories_{i}').split(',')
-        quantity = int(request.form.get(f'quantity_{i}'))
-        managers = request.form.getlist(f'managers_{i}')
+        categories = request.form.get(f'categories_{i}', '').split(',')
+        quantity = request.form.get(f'quantity_{i}')
+        manager_ids = request.form.getlist(f'managers_{i}[]')
 
-        # Find or create location
+
+        # Validazione dei campi obbligatori
+        if not name or not code or not pavilion or not project_name or not quantity:
+            flash(f'Product {i+1}: All fields except Description, Room, and Cabinet are required.', 'error')
+            error_occurred = True
+            continue
+
+        try:
+            quantity = int(quantity)
+            if quantity <= 0:
+                raise ValueError
+        except ValueError:
+            flash(f'Product {i+1}: Quantity must be a positive integer.', 'error')
+            error_occurred = True
+            continue
+
+        # Trova o crea la location
         location = Location.query.filter_by(pavilion=pavilion, room=room, cabinet=cabinet).first()
         if not location:
             location = Location(pavilion=pavilion, room=room, cabinet=cabinet)
             db.session.add(location)
 
-        # Find or create project
+        # Trova o crea il progetto
         project = Project.query.filter_by(name=project_name).first()
         if not project:
             project = Project(name=project_name)
             db.session.add(project)
 
-        # Find or create categories
+        # Trova o crea le categorie
         category_objects = []
         for cat_name in categories:
-            category = Category.query.filter_by(name=cat_name.strip()).first()
-            if not category:
-                category = Category(name=cat_name.strip())
-                db.session.add(category)
-            category_objects.append(category)
+            cat_name = cat_name.strip()
+            if cat_name:
+                category = Category.query.filter_by(name=cat_name).first()
+                if not category:
+                    category = Category(name=cat_name)
+                    db.session.add(category)
+                category_objects.append(category)
 
-        # Create product
-        product = Product(
-            name=name,
-            unique_code=code,
-            description=description,
-            location=location,
-            project=project,
-            categories=category_objects,
-            quantity=quantity,
-            owner_id=current_user.id
-        )
-        db.session.add(product)
+        # Crea il prodotto
+        try:
+            product = Product(
+                name=name,
+                unique_code=code,
+                description=description,
+                location=location,
+                project=project,
+                categories=category_objects,
+                quantity=quantity,
+                owner_id=current_user.id
+            )
+            db.session.add(product)
+            db.session.flush()  # This will assign an ID to the product if it's valid
 
-        # Add managers
-        for manager_name in managers:
-            name_parts = manager_name.strip().split()
-            if len(name_parts) >= 2:
-                user = User.query.filter_by(name=name_parts[0], surname=name_parts[-1]).first()
-                if user:
+            # Aggiungi il proprietario (utente corrente) come manager
+            owner_manager = ProductManager(product=product, user=current_user)
+            db.session.add(owner_manager)
+
+            # Aggiungi gli altri manager
+            for manager_id in manager_ids:
+                user = User.query.get(int(manager_id))
+                if user and user != current_user:  # Evita di aggiungere il proprietario due volte
                     product_manager = ProductManager(product=product, user=user)
                     db.session.add(product_manager)
-                else:
-                    flash(f'Manager not found: {manager_name}', 'warning')
 
-    db.session.commit()
-    flash('Products created successfully!', 'success')
-    return redirect(url_for('main.add_product'))
+        except IntegrityError:
+            db.session.rollback()
+            flash(f'Product {i+1}: A product with this code already exists.', 'error')
+            error_occurred = True
+            continue
+
+    if error_occurred:
+        db.session.rollback()
+        return redirect(url_for('main.add_product'))
+    else:
+        try:
+            db.session.commit()
+            flash('Products created successfully!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'An error occurred while saving the products: {str(e)}', 'error')
+            return redirect(url_for('main.add_product'))
+    return redirect(url_for('main.list_products'))
 
 
 @main_blueprint.route('/search_managers', methods=['GET'])

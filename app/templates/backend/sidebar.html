@@ -29,6 +29,11 @@
                               </svg>
                           </a>
                           <ul id="product" class="iq-submenu collapse" data-parent="#iq-sidebar-toggle">
+                            <li class="">
+                                <a href="{{ url_for('main.add_product')}}">
+                                    <i class="las la-minus"></i><span>Add Product</span>
+                                </a>
+                            </li>
                               <li class="">
                                   <a href="{{ url_for('main.list_products')}}">
                                       <i class="las la-minus"></i><span>List Product</span>
@@ -40,10 +45,10 @@
                                   </a>
                               </li>
                               <li class="">
-                                  <a href="{{ url_for('main.add_product')}}">
-                                      <i class="las la-minus"></i><span>Add Product</span>
-                                  </a>
-                              </li>
+                                <a href="{{ url_for('main.list_disabled_products')}}">
+                                    <i class="las la-minus"></i><span>Disabled Products</span>
+                                </a>
+                            </li>
                               <li class="">
                                   <a href="">
                                   <i class="las la-minus"></i><span>Export products to CSV <br>[TODO]</span>
