@@ -24,7 +24,9 @@ from flask import send_file
 import io
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
-
+from io import BytesIO, TextIOWrapper
+import tempfile
+import pandas as pd
 
 main_blueprint = Blueprint('main', __name__)
 
@@ -1264,3 +1266,76 @@ def search_managers():
         (User.id != current_user.id)
     ).all()
     return jsonify([{'id': m.id, 'name': m.name, 'surname': m.surname} for m in managers])
+
+
+
+@main_blueprint.route('/export_products', methods=['POST'])
+@login_required
+def export_products():
+    export_type = request.form.get('export_type')
+    project_id = request.form.get('project_id')
+    send_emails = request.form.get('send_emails') == 'true'
+
+    if export_type == 'project':
+        products = Product.query.filter_by(project_id=project_id).all()
+    elif export_type == 'my_products':
+        products = Product.query.filter_by(owner_id=current_user.id).all()
+    else:
+        flash('Invalid export type', 'error')
+        return redirect(url_for('main.dashboard'))
+
+    # Crea una lista di dizionari con i dati dei prodotti
+    product_list = []
+    for product in products:
+        owner = User.query.get(product.owner_id)
+        product_list.append({
+            'Name': product.name,
+            'Code': product.unique_code,
+            'Description': product.description or '',
+            'Pavilion': product.location.pavilion,
+            'Room': product.location.room or '',
+            'Cabinet': product.location.cabinet or '',
+            'Project': product.project.name,
+            'Categories': ', '.join([c.name for c in product.categories]),
+            'Quantity': str(product.quantity),
+            'Owner': f"{owner.name} {owner.surname}" if owner else "Unknown"
+        })
+
+    # Crea un DataFrame
+    df = pd.DataFrame(product_list)
+
+    # Salva il DataFrame in un file CSV temporaneo
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as temp_csv:
+        csv_path = temp_csv.name
+        df.to_csv(csv_path, index=False, encoding='utf-8')
+
+    if send_emails and export_type == 'project':
+        owners = set(User.query.get(product.owner_id) for product in products if product.owner_id != current_user.id)
+        project = Project.query.get(project_id)
+        for owner in owners:
+            send_email(
+                subject="Products Export Notification",
+                recipient=owner.email,
+                template='export_notification',
+                user=owner,
+                exporter=current_user,
+                project=project
+            )
+
+    # Invia il file per il download
+    return send_file(
+        csv_path,
+        mimetype='text/csv',
+        download_name='products_export.csv',
+        as_attachment=True
+    )
+
+    # Elimina il file temporaneo
+    os.remove(csv_path)
+
+
+@main_blueprint.route('/extract_page')
+@login_required
+def extract_page():
+    projects = Project.query.all()
+    return render_template('backend/extract_csv.html', projects=projects)
