@@ -1,0 +1,9 @@
+Dear {{ user.name }},
+
+This is to inform you that {{ exporter.name }} {{ exporter.surname }} has requested the export of products for the project "{{ project.name }}".
+
+You do not need to take any action. This email is simply a notification.
+
+Best regards,
+The DIEE Inventory Team
+

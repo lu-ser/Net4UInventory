@@ -12,7 +12,10 @@
       <link rel="stylesheet" href="../../static/css/backend.css?v=1.0.0">
       <link rel="stylesheet" href="../../static/vendor/@fortawesome/fontawesome-free/css/all.min.css">
       <link rel="stylesheet" href="../../static/vendor/line-awesome/dist/line-awesome/css/line-awesome.min.css">
-      <link rel="stylesheet" href="../../static/vendor/remixicon/fonts/remixicon.css">  </head>
+      <link rel="stylesheet" href="../../static/vendor/remixicon/fonts/remixicon.css">
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+      </head>
   <body class="  ">
     <!-- loader Start -->
     <div id="loading">
@@ -275,6 +278,7 @@
     
     <!-- Chart Custom JavaScript -->
     <script async src="../../static/js/chart-custom.js"></script>
+    {% include "./backend/notifications.html" %} 
     <script>
         function addEntity(formId, modalId, selectId, url) {
             $(formId).submit(function(e) {
@@ -290,13 +294,37 @@
                             $(modalId).modal('hide');
                             // Aggiungi l'entità alla select corrispondente
                             $(selectId).append(`<option value="${response.entity.id}" selected>${response.entity.name}</option>`).selectpicker('refresh');
+                            
+                            // Mostra un messaggio di successo con SweetAlert2
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: response.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
                         } else {
-                            alert(response.message);  // mostra l'errore all'utente
+                            // Mostra un messaggio di errore specifico con SweetAlert2
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.message
+                            });
                         }
                     },
                     error: function(xhr) {
                         console.log('Error:', xhr.responseText);
-                        alert('Failed to add entity.');
+                        // Prova a ottenere il messaggio di errore dal JSON restituito dal server
+                        let errorMessage = 'An error occurred while adding the entity.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        // Mostra un messaggio di errore con SweetAlert2
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Failed',
+                            text: errorMessage
+                        });
                     }
                 });
             });
@@ -309,6 +337,7 @@
                 addEntity('#new-project-form', '#projectModal', 'select[name="project_id"]', '/add_project');
             });
     </script>
+ 
     <!-- app JavaScript -->
     <script src="../../static/js/app.js"></script>
   </body>

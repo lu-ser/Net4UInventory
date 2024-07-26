@@ -141,12 +141,13 @@ def add_product():
         db.session.commit()
 
         flash('Product added successfully!', 'success')
-        return redirect(url_for('main.add_product'))
+        return redirect(url_for('main.list_products'))
 
     categories = Category.query.all()
     projects = Project.query.all()
     locations = Location.query.all()
-    return render_template('backend/page-add-product.html', categories=categories, locations=locations, projects=projects)
+    messages=get_flashed_messages(with_categories=True)
+    return render_template('backend/page-add-product.html', categories=categories, locations=locations, projects=projects,messages=messages)
 
 @main_blueprint.route('/upload_csv', methods=['POST'])
 @login_required
@@ -189,7 +190,16 @@ def allowed_file(filename):
 @main_blueprint.route('/add_category', methods=['POST'])
 @login_required
 def add_category():
-    name = request.form['name']
+    name = request.form['name'].strip().lower()
+
+    # Controlla se la categoria esiste già (case-insensitive)
+    existing_category = Category.query.filter(func.lower(Category.name) == name).first()
+    if existing_category:
+        return jsonify({
+            'status': 'error',
+            'message': 'Category with this name already exists'
+        }), 400
+
     new_category = Category(name=name)
     db.session.add(new_category)
     try:
@@ -212,11 +222,21 @@ def add_category():
 @main_blueprint.route('/add_location', methods=['POST'])
 @login_required
 def add_location():
-    pavilion = request.form.get('pavilion')
-    room = request.form.get('room', '')
-    cabinet = request.form.get('cabinet', '')
+    pavilion = request.form.get('pavilion').strip().lower()
+    room = request.form.get('room', '').strip().lower()
+    cabinet = request.form.get('cabinet', '').strip().lower()
+    
     if not pavilion:
         return jsonify({'error': 'Pavilion is required'}), 400
+
+    # Controlla se la location esiste già (case-insensitive)
+    existing_location = Location.query.filter_by(pavilion=pavilion, room=room, cabinet=cabinet).first()
+    if existing_location:
+        return jsonify({
+            'status': 'error',
+            'message': 'Location with this pavilion, room, and cabinet already exists'
+        }), 400
+
     location = Location(pavilion=pavilion, room=room, cabinet=cabinet)
     db.session.add(location)
     try:
@@ -234,13 +254,23 @@ def add_location():
             'error': str(e)
         }), 400
 
-@main_blueprint.route('/add_project', methods=['POST'])
+@main_blueprint.route('/add_project', methods=['POST']) #TODO non mi piace la lista. Ci vuole un  tasto di ricerca 
 @login_required
 def add_project():
-    name = request.form.get('name')
-    funding_body = request.form.get('funding_body', '')
+    name = request.form.get('name').strip().lower()
+    funding_body = request.form.get('funding_body', '').strip()
+
     if not name:
         return jsonify({'error': 'Project name is required'}), 400
+
+    # Controlla se il progetto esiste già (case-insensitive)
+    existing_project = Project.query.filter_by(name=name).first()
+    if existing_project:
+        return jsonify({
+            'status': 'error',
+            'message': 'Project with this name already exists'
+        }), 400
+
     project = Project(name=name, funding_body=funding_body)
     db.session.add(project)
     try:
@@ -248,7 +278,7 @@ def add_project():
         return jsonify({
             'status': 'success',
             'message': 'Project added successfully',
-            'entity': {'name': f"{project.name}"}
+            'entity': {'id': project.id, 'name': project.name}
         }), 201
     except Exception as e:
         db.session.rollback()
@@ -1316,7 +1346,7 @@ def export_products():
             send_email(
                 subject="Products Export Notification",
                 recipient=owner.email,
-                template='export_notification',
+                template='/backend/export_notification',
                 user=owner,
                 exporter=current_user,
                 project=project
