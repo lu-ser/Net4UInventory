@@ -173,34 +173,40 @@
                                         <label>Location *</label>
                                         <div class="row">
                                             <div class="col-sm-6">
-                                            <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#newLocationModal">
-                                                Add New Location
-                                              </button>
+                                                <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#newLocationModal">
+                                                    Add New Location
+                                                </button>
                                             </div>
                                         </div>
-                                        <select name="location_id" class="selectpicker form-control" required>
+                                        <select name="location_id" class="form-control select2-single" required>
+                                            <option></option>
                                             {% for location in locations %}
                                             <option value="{{ location.id }}">{{ location.pavilion }} - {{ location.room }} - {{ location.cabinet }}</option>
                                             {% endfor %}
                                         </select>
-                                    </div></div>
-                                    <div class="col-md-6">  
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">  
                                     <div class="form-group">
                                         <label>Project *</label>
                                         <div class="row">
                                             <div class="col-sm-6">
                                                 <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#newProjectModal">
                                                     Add New Project
-                                              </button>
+                                                </button>
                                             </div>
                                         </div>
-                                        <select name="project_id" class="selectpicker form-control" required>
+                                        <select name="project_id" class="form-control select2-single" required>
+                                            <option></option>
                                             {% for project in projects %}
                                             <option value="{{ project.id }}">{{ project.name }}</option>
                                             {% endfor %}
                                         </select>
-                                    </div></div>
-                                    <div class="col-md-12">  
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-12">  
                                     <div class="form-group">
                                         <label>Category *</label>
                                         <div class="row">
@@ -210,12 +216,13 @@
                                                 </button>
                                             </div>
                                         </div>
-                                        <select name="category_ids" class="selectpicker form-control" data-style="py-0" multiple required>
+                                        <select name="category_ids" class="form-control select2-multiple" multiple required>
                                             {% for category in categories %}
                                             <option value="{{ category.id }}">{{ category.name }}</option>
                                             {% endfor %}
                                         </select>
-                                    </div></div>
+                                    </div>
+                                </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>Quantity *</label>
@@ -230,7 +237,7 @@
                                 </div>
                                 <div class="col-md-12">
                                     <div class="form-group">
-                                        <label>Image</label>
+                                        <label>Image</label> [Future Implementation]
                                         <input type="file" name="pic" class="form-control image-file" accept="image/*">
                                     </div>
                                 </div>
@@ -337,7 +344,21 @@
                 addEntity('#new-project-form', '#projectModal', 'select[name="project_id"]', '/add_project');
             });
     </script>
- 
+ <script>
+    $(document).ready(function() {
+        // Inizializza Select2 per le select singole
+        $('.select2-single').select2({
+            placeholder: "Select an option",
+            allowClear: true
+        });
+    
+        // Inizializza Select2 per le select multiple
+        $('.select2-multiple').select2({
+            placeholder: "Select one or more options",
+            allowClear: true
+        });
+    });
+    </script>
     <!-- app JavaScript -->
     <script src="../../static/js/app.js"></script>
   </body>

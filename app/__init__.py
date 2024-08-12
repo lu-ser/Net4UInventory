@@ -17,7 +17,7 @@ def load_user(user_id):
 def create_app(config_name=None):
     app = Flask(__name__, template_folder='./templates', static_folder='./static')
     if config_name == 'testing':
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1234@localhost:5432/Net4UInventory_test'
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1234@localhost:5432/Net4UInventory_test2'
     else:
         app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1234@localhost:5432/Net4UInventory'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False

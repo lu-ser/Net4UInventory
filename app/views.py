@@ -34,7 +34,7 @@ main_blueprint = Blueprint('main', __name__)
 @login_required
 def index():
     messages = get_flashed_messages(with_categories=True)
-    return render_template('backend/index.html', messages=messages)
+    return redirect(url_for('main.dashboard'))
 
 @main_blueprint.route('/logout')
 @login_required  # Assicurati che solo gli utenti loggati possano accedere a questa route
@@ -544,9 +544,7 @@ def request_product(encrypted_id):
 
     return redirect(url_for('main.view_product', encrypted_id=encrypted_id))
 
- #TODO verificare se le quantià corrispondono
-    #TODO Vorrei vedere nel calendario quando il prodotto è disponibile e non ed in quanta misura. 
-    # Cioè, dato il numero di oggetti che voglio, il calendario si deve aggiornare indicandomi quando posso richiederlo o no
+ 
 
 
 @main_blueprint.route('/fetch_availability/<encrypted_id>', methods=['GET'])
@@ -1369,3 +1367,51 @@ def export_products():
 def extract_page():
     projects = Project.query.all()
     return render_template('backend/extract_csv.html', projects=projects)
+
+
+@main_blueprint.route('/dashboard')
+@login_required
+def dashboard():
+    latest_products = Product.query.order_by(Product.id.desc()).limit(6).all()
+    latest_loans = (
+        Loan.query.filter_by(borrower_id=current_user.id)
+        .order_by(Loan.start_date.desc())
+        .limit(5)
+        .all()
+    )
+    latest_returns = (
+        Loan.query.filter_by(borrower_id=current_user.id)
+        .filter(Loan.end_date != None)
+        .order_by(Loan.end_date.desc())
+        .limit(5)
+        .all()
+    )
+    
+    top_loaned_products = (
+        db.session.query(Product, func.count(Loan.id).label('loans_count'))
+        .join(Loan)
+        .group_by(Product)
+        .order_by(func.count(Loan.id).desc())
+        .limit(10)
+        .all()
+    )
+
+    # Additional statistics
+    total_products = Product.query.count()
+    active_loans = Loan.query.filter(Loan.end_date == None).count()
+    total_returns = Loan.query.filter(Loan.end_date != None).count()
+    
+    # Modifica qui: usiamo end_date invece di due_date
+    overdue_loans = Loan.query.filter(Loan.end_date != None, Loan.end_date < datetime.utcnow()).count()
+
+    messages = get_flashed_messages(with_categories=True)
+    return render_template('backend/dashboard.html', 
+                           latest_products=latest_products,
+                           latest_loans=latest_loans,
+                           latest_returns=latest_returns,
+                           top_loaned_products=top_loaned_products,
+                           total_products=total_products,
+                           active_loans=active_loans,
+                           total_returns=total_returns,
+                           overdue_loans=overdue_loans,
+                           messages=messages)
