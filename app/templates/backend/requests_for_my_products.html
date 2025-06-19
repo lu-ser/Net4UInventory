@@ -1,71 +1,75 @@
-
 <!doctype html>
 <html lang="en">
-  <head>
+
+<head>
     <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-      <title>POS Dash | Responsive Bootstrap 4 Admin Dashboard Template</title>
-      
-      <!-- Favicon -->
-      <link rel="shortcut icon" href="../../static/images/favicon.ico" />
-      <link rel="stylesheet" href="../../static/css/backend-plugin.min.css">
-      <link rel="stylesheet" href="../../static/css/backend.css?v=1.0.0">
-      <link rel="stylesheet" href="../../static/vendor/@fortawesome/fontawesome-free/css/all.min.css">
-      <link rel="stylesheet" href="../../static/vendor/line-awesome/dist/line-awesome/css/line-awesome.min.css">
-      <link rel="stylesheet" href="../../static/vendor/remixicon/fonts/remixicon.css">  </head>
-  <body class="  ">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>POS Dash | Responsive Bootstrap 4 Admin Dashboard Template</title>
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="../../static/images/favicon.ico" />
+    <link rel="stylesheet" href="../../static/css/backend-plugin.min.css">
+    <link rel="stylesheet" href="../../static/css/backend.css?v=1.0.0">
+    <link rel="stylesheet" href="../../static/vendor/@fortawesome/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="../../static/vendor/line-awesome/dist/line-awesome/css/line-awesome.min.css">
+    <link rel="stylesheet" href="../../static/vendor/remixicon/fonts/remixicon.css">
+</head>
+
+<body class="  ">
     <!-- loader Start -->
     <div id="loading">
-          <div id="loading-center">
-          </div>
+        <div id="loading-center">
+        </div>
     </div>
     <!-- loader END -->
     <!-- Wrapper Start -->
     <div class="wrapper">
-        {% include "./backend/sidebar.html" %} 
+        {% include "./backend/sidebar.html" %}
         {%include "./backend/navbar.html" %}
 
-      <div class="modal fade" id="new-order" tabindex="-1" role="dialog" aria-hidden="true">
-          <div class="modal-dialog modal-dialog-centered" role="document">
-              <div class="modal-content">
-                  <div class="modal-body">
-                      <div class="popup text-left">
-                          <h4 class="mb-3">New Order</h4>
-                          <div class="content create-workform bg-body">
-                              <div class="pb-3">
-                                  <label class="mb-2">Email</label>
-                                  <input type="text" class="form-control" placeholder="Enter Name or Email">
-                              </div>
-                              <div class="col-lg-12 mt-4">
-                                  <div class="d-flex flex-wrap align-items-ceter justify-content-center">
-                                      <div class="btn btn-primary mr-4" data-dismiss="modal">Cancel</div>
-                                      <div class="btn btn-outline-primary" data-dismiss="modal">Create</div>
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
-                  </div>
-              </div>
-          </div>
-      </div>      <div class="content-page">
-     <div class="container-fluid">
-        <div class="row">
-            <div class="col-lg-12">
-                <div class="d-flex flex-wrap align-items-center justify-content-between mb-4">
-                    <div>
-                        <h4 class="mb-3">Requests for My Products</h4>
+        <div class="modal fade" id="new-order" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-body">
+                        <div class="popup text-left">
+                            <h4 class="mb-3">New Order</h4>
+                            <div class="content create-workform bg-body">
+                                <div class="pb-3">
+                                    <label class="mb-2">Email</label>
+                                    <input type="text" class="form-control" placeholder="Enter Name or Email">
+                                </div>
+                                <div class="col-lg-12 mt-4">
+                                    <div class="d-flex flex-wrap align-items-ceter justify-content-center">
+                                        <div class="btn btn-primary mr-4" data-dismiss="modal">Cancel</div>
+                                        <div class="btn btn-outline-primary" data-dismiss="modal">Create</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-lg-12">
-                <div class="row mb-3">
-                    <div class="col-lg-4">
-                        <input type="text" id="searchRequestsForMyProducts" class="form-control" placeholder="Search requests.">
+        </div>
+        <div class="content-page">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between mb-4">
+                            <div>
+                                <h4 class="mb-3">Requests for My Products</h4>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
+                    <div class="col-lg-12">
+                        <div class="row mb-3">
+                            <div class="col-lg-4">
+                                <input type="text" id="searchRequestsForMyProducts" class="form-control"
+                                    placeholder="Search requests.">
+                            </div>
+                        </div>
+                    </div>
                     <div class="table-responsive rounded mb-3">
-                        
+
                         <table class="data-table table mb-0 tbl-server-info">
                             <thead class="bg-white text-uppercase">
                                 <tr class="ligth ligth-data">
@@ -96,24 +100,39 @@
                                         {% elif request.status == 'returned' %}
                                         <div class="badge badge-success">Returned</div>
                                         {% elif request.status == 'in_review' %}
-                                        <div class="badge badge-primary">In Review</div>
+                                        <div class="badge badge-primary">Return Pending Review</div>
                                         {% elif request.status == 'cancelled' %}
                                         <div class="badge badge-secondary">Cancelled</div>
                                         {% endif %}
                                     </td>
                                     <td>
                                         <div class="d-flex align-items-center list-action">
-                                            <a class="badge bg-info mr-2" data-toggle="tooltip" data-placement="top" title="View Details"
-                                                href="#" onclick="showOrderDetails({{ request.id }})"><i class="ri-eye-line mr-0"></i></a>
+                                            <a class="badge bg-info mr-2" data-toggle="tooltip" data-placement="top"
+                                                title="View Details" href="#"
+                                                onclick="showOrderDetails({{ request.id }})"><i
+                                                    class="ri-eye-line mr-0"></i></a>
                                             {% if request.status == 'pending' %}
-                                            <a class="badge bg-success mr-2" data-toggle="tooltip" data-placement="top" title="Approve"
-                                                href="#" onclick="approveRequest({{ request.id }})"><i class="ri-check-line mr-0"></i></a>
-                                            <a class="badge bg-danger mr-2" data-toggle="tooltip" data-placement="top" title="Reject"
-                                                href="#" onclick="rejectRequest({{ request.id }})"><i class="ri-close-line mr-0"></i></a>
+                                            <a class="badge bg-success mr-2" data-toggle="tooltip" data-placement="top"
+                                                title="Approve" href="#" onclick="approveRequest({{ request.id }})"><i
+                                                    class="ri-check-line mr-0"></i></a>
+                                            <a class="badge bg-danger mr-2" data-toggle="tooltip" data-placement="top"
+                                                title="Reject" href="#" onclick="rejectRequest({{ request.id }})"><i
+                                                    class="ri-close-line mr-0"></i></a>
                                             {% endif %}
                                             {% if request.status == 'approved' %}
-                                            <a class="badge bg-dark mr-2" data-toggle="tooltip" data-placement="top" title="Extend"
-                                                href="#" onclick="openExtendModal({{ request.id }})"><i class="ri-calendar-line mr-0"></i></a>
+                                            <a class="badge bg-dark mr-2" data-toggle="tooltip" data-placement="top"
+                                                title="Extend" href="#" onclick="openExtendModal({{ request.id }})"><i
+                                                    class="ri-calendar-line mr-0"></i></a>
+                                            {% endif %}
+                                            {% if request.status == 'in_review' %}
+                                            <a class="badge bg-success mr-2" data-toggle="tooltip" data-placement="top"
+                                                title="Approve Return" href="#"
+                                                onclick="approveReturn({{ request.id }})"><i
+                                                    class="ri-check-double-line mr-0"></i></a>
+                                            <a class="badge bg-warning mr-2" data-toggle="tooltip" data-placement="top"
+                                                title="Reject Return - Keep Active" href="#"
+                                                onclick="rejectReturn({{ request.id }})"><i
+                                                    class="ri-arrow-go-back-line mr-0"></i></a>
                                             {% endif %}
                                         </div>
                                     </td>
@@ -122,13 +141,14 @@
                             </tbody>
                         </table>
                     </div>
-                
+
                     <!-- Unavailable Products -->
                     <div class="tile mt-5">
                         <h3>Unavailable Products</h3>
                         <div class="row mb-3">
                             <div class="col-lg-4">
-                                <input type="text" id="searchUnavailableProducts" class="form-control" placeholder="Search unavailable products...">
+                                <input type="text" id="searchUnavailableProducts" class="form-control"
+                                    placeholder="Search unavailable products...">
                             </div>
                         </div>
                         <table class="data-table table mb-0 tbl-server-info">
@@ -152,8 +172,37 @@
                                     <td>{{ request.manager.name }} {{ request.manager.surname }}</td>
                                     <td>
                                         <div class="d-flex align-items-center list-action">
-                                            <a class="badge bg-success mr-2" data-toggle="tooltip" data-placement="top" title="Restore"
-                                                href="#" onclick="restoreProduct({{ request.id }})"><i class="ri-refresh-line mr-0"></i></a>
+                                            <a class="badge bg-info mr-2" data-toggle="tooltip" data-placement="top"
+                                                title="View Details" href="#"
+                                                onclick="showOrderDetails({{ request.id }})"><i
+                                                    class="ri-eye-line mr-0"></i></a>
+
+                                            {% if request.status == 'pending' %}
+                                            <a class="badge bg-success mr-2" data-toggle="tooltip" data-placement="top"
+                                                title="Approve" href="#" onclick="approveRequest({{ request.id }})"><i
+                                                    class="ri-check-line mr-0"></i></a>
+                                            <a class="badge bg-danger mr-2" data-toggle="tooltip" data-placement="top"
+                                                title="Reject" href="#" onclick="rejectRequest({{ request.id }})"><i
+                                                    class="ri-close-line mr-0"></i></a>
+                                            {% endif %}
+
+                                            {% if request.status == 'approved' %}
+                                            <a class="badge bg-dark mr-2" data-toggle="tooltip" data-placement="top"
+                                                title="Extend" href="#" onclick="openExtendModal({{ request.id }})"><i
+                                                    class="ri-calendar-line mr-0"></i></a>
+                                            {% endif %}
+
+                                            <!-- NUOVO: Gestione dei resi in review -->
+                                            {% if request.status == 'in_review' %}
+                                            <a class="badge bg-success mr-2" data-toggle="tooltip" data-placement="top"
+                                                title="Approve Return" href="#"
+                                                onclick="approveReturn({{ request.id }})"><i
+                                                    class="ri-check-double-line mr-0"></i></a>
+                                            <a class="badge bg-warning mr-2" data-toggle="tooltip" data-placement="top"
+                                                title="Reject Return" href="#"
+                                                onclick="rejectReturn({{ request.id }})"><i
+                                                    class="ri-arrow-go-back-line mr-0"></i></a>
+                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>
@@ -163,9 +212,10 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Order Details Modal -->
-            <div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
+            <div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel"
+                aria-hidden="true">
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -186,14 +236,15 @@
                     </div>
                 </div>
             </div>
-            </div>
-    
         </div>
-        </div>
-        <!-- Page end  -->
+
+    </div>
+    </div>
+    <!-- Page end  -->
     </div>
     <!-- Modal Edit -->
-    <div class="modal fade" id="extendLoanModal" tabindex="-1" role="dialog" aria-labelledby="extendLoanModalLabel" aria-hidden="true">
+    <div class="modal fade" id="extendLoanModal" tabindex="-1" role="dialog" aria-labelledby="extendLoanModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
@@ -220,10 +271,10 @@
     </div>
 
 
-    
+
     <!-- Wrapper End-->
     <footer class="iq-footer">
-            <div class="container-fluid">
+        <div class="container-fluid">
             <div class="card">
                 <div class="card-body">
                     <div class="row">
@@ -234,7 +285,9 @@
                             </ul>
                         </div>
                         <div class="col-lg-6 text-right">
-                            <span class="mr-1"><script>document.write(new Date().getFullYear())</script>©</span> <a href="#" class="">POS Dash</a>.
+                            <span class="mr-1">
+                                <script>document.write(new Date().getFullYear())</script>©
+                            </span> <a href="#" class="">POS Dash</a>.
                         </div>
                     </div>
                 </div>
@@ -243,30 +296,30 @@
     </footer>
     <!-- Backend Bundle JavaScript -->
     <script src="../../static/js/backend-bundle.min.js"></script>
-    
+
     <!-- Table Treeview JavaScript -->
     <script src="../../static/js/table-treeview.js"></script>
-    
+
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             function setupSearch(inputId, tableBodyId) {
                 const searchInput = document.getElementById(inputId);
                 const tableBody = document.getElementById(tableBodyId);
                 const rows = tableBody.querySelectorAll('tr');
-    
-                searchInput.addEventListener('keyup', function() {
+
+                searchInput.addEventListener('keyup', function () {
                     const query = searchInput.value.toLowerCase();
-    
-                    rows.forEach(function(row) {
+
+                    rows.forEach(function (row) {
                         const cells = row.querySelectorAll('td');
                         let match = false;
-    
-                        cells.forEach(function(cell) {
+
+                        cells.forEach(function (cell) {
                             if (cell.textContent.toLowerCase().includes(query)) {
                                 match = true;
                             }
                         });
-    
+
                         if (match) {
                             row.style.display = '';
                         } else {
@@ -275,12 +328,12 @@
                     });
                 });
             }
-    
+
             setupSearch('searchRequestsForMyProducts', 'requestsForMyProductsTableBody');
             setupSearch('searchUnavailableProducts', 'unavailableProductsTableBody');
-    
-            window.approveRequest = function(requestId) {
-                $.post('/approve_request/' + requestId, function(response) {
+
+            window.approveRequest = function (requestId) {
+                $.post('/approve_request/' + requestId, function (response) {
                     if (response.status === 'success') {
                         location.reload();
                     } else {
@@ -288,9 +341,9 @@
                     }
                 });
             }
-    
-            window.rejectRequest = function(requestId) {
-                $.post('/reject_request/' + requestId, function(response) {
+
+            window.rejectRequest = function (requestId) {
+                $.post('/reject_request/' + requestId, function (response) {
                     if (response.status === 'success') {
                         location.reload();
                     } else {
@@ -298,9 +351,9 @@
                     }
                 });
             }
-    
-            window.restoreProduct = function(requestId) {
-                $.post('/restore_product/' + requestId, function(response) {
+
+            window.restoreProduct = function (requestId) {
+                $.post('/restore_product/' + requestId, function (response) {
                     if (response.status === 'success') {
                         location.reload();
                     } else {
@@ -308,16 +361,16 @@
                     }
                 });
             }
-    
-            window.openExtendModal = function(requestId) {
+
+            window.openExtendModal = function (requestId) {
                 $('#extendLoanId').val(requestId);
                 $('#extendLoanModal').modal('show');
             }
-    
-            window.submitExtendLoan = function() {
+
+            window.submitExtendLoan = function () {
                 const loanId = $('#extendLoanId').val();
                 const newEndDate = $('#newEndDate').val();
-                $.post('/extend_loan/' + loanId, { new_end_date: newEndDate }, function(response) {
+                $.post('/extend_loan/' + loanId, { new_end_date: newEndDate }, function (response) {
                     if (response.status === 'success') {
                         $('#extendLoanModal').modal('hide');
                         location.reload();
@@ -331,12 +384,12 @@
 
     <!-- Chart Custom JavaScript -->
     <script src="../../static/js/customizer.js"></script>
-    
+
     <!-- Chart Custom JavaScript -->
     <script async src="../../static/js/chart-custom.js"></script>
     <script>
         function cancelRequest(orderId) {
-            $.post('/cancel_request/' + orderId, function(response) {
+            $.post('/cancel_request/' + orderId, function (response) {
                 if (response.status === 'success') {
                     location.reload();
                 } else {
@@ -344,9 +397,9 @@
                 }
             });
         }
-    
+
         function restoreUnavailable(orderId) {
-            $.post('/restore_unavailable/' + orderId, function(response) {
+            $.post('/restore_unavailable/' + orderId, function (response) {
                 if (response.status === 'success') {
                     location.reload();
                 } else {
@@ -354,18 +407,50 @@
                 }
             });
         }
-    
+
         function markAsReturned(orderId) {
-            $.post('/mark_as_returned/' + orderId, function(response) {
+            $.post('/mark_as_returned/' + orderId, function (response) {
                 if (response.status === 'success') {
                     location.reload();
                 } else {
                     alert(response.message);
                 }
             });
+        }
+        window.approveReturn = function (requestId) {
+            if (confirm('Are you sure you want to approve this return? The item will be marked as returned.')) {
+                $.post('/approve_return/' + requestId, function (response) {
+                    if (response.status === 'success') {
+                        alert('Return approved successfully!');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                }).fail(function (xhr) {
+                    alert('Error approving return. Please try again.');
+                    console.error('Error:', xhr.responseText);
+                });
+            }
+        }
+
+        window.rejectReturn = function (requestId) {
+            if (confirm('Are you sure you want to reject this return? The loan will remain active.')) {
+                $.post('/reject_return/' + requestId, function (response) {
+                    if (response.status === 'success') {
+                        alert('Return rejected. The loan remains active.');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                }).fail(function (xhr) {
+                    alert('Error rejecting return. Please try again.');
+                    console.error('Error:', xhr.responseText);
+                });
+            }
         }
     </script>
     <!-- app JavaScript -->
     <script src="../../static/js/app.js"></script>
-  </body>
+</body>
+
 </html>

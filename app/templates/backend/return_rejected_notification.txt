@@ -1,0 +1,19 @@
+Dear {{ borrower.name }} {{ borrower.surname }},
+
+Your return request for the product "{{ product.name }}" (Code: {{ product.unique_code }}) has been REJECTED.
+
+Details:
+- Product: {{ product.name }}
+- Quantity: {{ loan.quantity }}
+- Loan Period: {{ loan.start_date.strftime('%Y-%m-%d') }} to {{ loan.end_date.strftime('%Y-%m-%d') }}
+- Rejected by: {{ manager.name }} {{ manager.surname }}
+- Date: {{ rejection_date }}
+
+The loan remains ACTIVE and you are still responsible for the borrowed item.
+
+Please contact the product manager if you have any questions or if you believe this rejection was made in error.
+
+Manager Contact: {{ manager.email }}
+
+Best regards,
+The Net4U Inventory Team

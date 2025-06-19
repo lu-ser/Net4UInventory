@@ -27,6 +27,7 @@ from sqlalchemy.exc import IntegrityError
 from io import BytesIO, TextIOWrapper
 import tempfile
 import pandas as pd
+from .utils.utils import flash_message, send_email
 
 main_blueprint = Blueprint('main', __name__)
 
@@ -394,6 +395,80 @@ def view_product(encrypted_id):
                            is_owner_or_manager=is_owner_or_manager,
                            reserved_dates=reserved_dates,
                            reserved_quantity=reserved_quantity)
+
+@main_blueprint.route('/approve_return/<int:loan_id>', methods=['POST'])
+@login_required
+def approve_return(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+    
+    # Verifica che il loan sia in stato 'in_review'
+    if loan.status != 'in_review':
+        return jsonify({'status': 'error', 'message': 'Only loans in review can be approved'}), 400
+    
+    # Verifica che l'utente sia il proprietario o un manager del prodotto
+    if (loan.product.owner_id != current_user.id and 
+        current_user not in loan.product.managers):
+        return jsonify({'status': 'error', 'message': 'You are not authorized to perform this action'}), 403
+    
+    # Approva la restituzione - imposta lo stato a 'returned'
+    loan.status = 'returned'
+    db.session.commit()
+    
+    # Invia email di conferma al borrower
+    try:
+        send_email(
+            subject=f"Return Confirmed - {loan.product.name}",
+            recipient=loan.borrower.email,
+            template='backend/return_approved_notification',
+            borrower=loan.borrower,
+            product=loan.product,
+            loan=loan,
+            manager=current_user,
+            approval_date=datetime.now().strftime('%Y-%m-%d %H:%M')
+        )
+        print(f"Email sent to {loan.borrower.email} about approved return for {loan.product.name}")
+    except Exception as e:
+        print(f"Failed to send email: {str(e)}")
+        # Non bloccare l'operazione se l'email fallisce
+    
+    return jsonify({'status': 'success', 'message': 'Return approved successfully. Borrower has been notified by email.'})
+@main_blueprint.route('/reject_return/<int:loan_id>', methods=['POST'])
+@login_required
+def reject_return(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+    
+    # Verifica che il loan sia in stato 'in_review'
+    if loan.status != 'in_review':
+        return jsonify({'status': 'error', 'message': 'Only loans in review can be rejected'}), 400
+    
+    # Verifica che l'utente sia il proprietario o un manager del prodotto
+    if (loan.product.owner_id != current_user.id and 
+        current_user not in loan.product.managers):
+        return jsonify({'status': 'error', 'message': 'You are not authorized to perform this action'}), 403
+    
+    # Rifiuta la restituzione - riporta lo stato a 'approved' 
+    # (il materiale è ancora in prestito)
+    loan.status = 'approved'
+    db.session.commit()
+    
+    # Invia email di notifica al borrower
+    try:
+        send_email(
+            subject=f"Return Rejected - {loan.product.name}",
+            recipient=loan.borrower.email,
+            template='backend/return_rejected_notification',
+            borrower=loan.borrower,
+            product=loan.product,
+            loan=loan,
+            manager=current_user,
+            rejection_date=datetime.now().strftime('%Y-%m-%d %H:%M')
+        )
+        print(f"Email sent to {loan.borrower.email} about rejected return for {loan.product.name}")
+    except Exception as e:
+        print(f"Failed to send email: {str(e)}")
+        # Non bloccare l'operazione se l'email fallisce
+    
+    return jsonify({'status': 'success', 'message': 'Return rejected - loan is still active. Borrower has been notified by email.'})
 
 @main_blueprint.route('/update_product/<encrypted_id>', methods=['POST']) #TODO Fix del bottone aggiungi location
 @login_required

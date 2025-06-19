@@ -1,0 +1,16 @@
+Dear {{ borrower.name }} {{ borrower.surname }},
+
+Your return for the product "{{ product.name }}" has been APPROVED and confirmed.
+
+Details:
+- Product: {{ product.name }}
+- Code: {{ product.unique_code }}
+- Quantity: {{ loan.quantity }}
+- Loan Period: {{ loan.start_date.strftime('%Y-%m-%d') }} to {{ loan.end_date.strftime('%Y-%m-%d') }}
+- Approved by: {{ manager.name }} {{ manager.surname }}
+- Date: {{ approval_date }}
+
+The loan is now COMPLETED. Thank you for returning the item in good condition.
+
+Best regards,
+The DIEE Inventory Team
