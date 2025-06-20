@@ -380,6 +380,8 @@ def view_product(encrypted_id):
     assigned_manager_ids = {manager.user_id for manager in product.manager_associations}
     reserved_dates = get_reserved_dates(product.id)
     reserved_quantity = get_reserved_quantity(product.id, datetime.now())
+    
+    messages = get_flashed_messages(with_categories=True)
 
     return render_template('backend/page-product.html',
                            encrypted_product_id=encrypted_id,
@@ -394,7 +396,8 @@ def view_product(encrypted_id):
                            selected_location=product.location_id,
                            is_owner_or_manager=is_owner_or_manager,
                            reserved_dates=reserved_dates,
-                           reserved_quantity=reserved_quantity)
+                           reserved_quantity=reserved_quantity,
+                           messages=messages)
 
 @main_blueprint.route('/approve_return/<int:loan_id>', methods=['POST'])
 @login_required

@@ -1,601 +1,1478 @@
-
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-      <title>Net4U</title>
-      
-      <!-- Favicon -->
-      <link rel="shortcut icon" href="../../static/images/favicon.ico" />
-      <link href="https://cdn.jsdelivr.net/npm/select2@4.3.0/dist/css/select2.min.css" rel="stylesheet" />
-      <link rel="stylesheet" href="../../static/css/backend-plugin.min.css">
-      <link rel="stylesheet" href="../../static/backend.css?v=1.0.0">
-      <link rel="stylesheet" href="../../static/vendor/@fortawesome/fontawesome-free/css/all.min.css">
-      <link rel="stylesheet" href="../../static/vendor/line-awesome/dist/line-awesome/css/line-awesome.min.css">
-      <link rel="stylesheet" href="../../static/vendor/remixicon/fonts/remixicon.css">
-      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 
-      <!-- FullCalendar CSS -->
-      <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js"></script>
-      <link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.css" rel="stylesheet">
-      <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-        }
-        #calendar {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        .quantity-selector, .booking-info {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        #debug-log {
-            margin-top: 20px;
-            padding: 10px;
-            background-color: #f0f0f0;
-            border: 1px solid #ccc;
-        }
-    </style>
-    
-    <!-- Your other CSS files -->
-    <link rel="stylesheet" href="../../static/assets/css/backend-plugin.min.css">
-    <link rel="stylesheet" href="../../static/assets/css/backend.css?v=1.0.0">
-    <link rel="stylesheet" href="../../static/assets/vendor/@fortawesome/fontawesome-free/css/all.min.css">
-    <link rel="stylesheet" href="../../static/assets/vendor/line-awesome/dist/line-awesome/css/line-awesome.min.css">
-    <link rel="stylesheet" href="../../static/assets/vendor/remixicon/fonts/remixicon.css">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>{{ product.name }} - Net4U Inventory</title>
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="../../static/images/favicon.ico" />
+    <link rel="stylesheet" href="../../static/css/backend-plugin.min.css">
+    <link rel="stylesheet" href="../../static/css/backend.css?v=1.0.0">
+    <link rel="stylesheet" href="../../static/vendor/@fortawesome/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="../../static/vendor/line-awesome/dist/line-awesome/css/line-awesome.min.css">
+    <link rel="stylesheet" href="../../static/vendor/remixicon/fonts/remixicon.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.3.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-      
-    </head>
-  <body class="  ">
 
-    <!-- loader Start -->
-    <div id="loading">
-          <div id="loading-center">
-          </div>
-    </div>
-    <!-- loader END -->
-    <!-- Wrapper Start -->
-    <div class="wrapper">
-      
-      <!-- SIDEBAR Start -->
-      {% include "/backend/sidebar.html" %}
-        <!-- NAVBAR Start -->
-      {% include "/backend/navbar.html" %}
+    <!-- FullCalendar CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js"></script>
 
-      <div class="modal fade" id="new-order" tabindex="-1" role="dialog" aria-hidden="true">
-          <div class="modal-dialog modal-dialog-centered" role="document">
-              <div class="modal-content">
-                  <div class="modal-body">
-                      <div class="popup text-left">
-                          <h4 class="mb-3">New Order</h4>
-                          <div class="content create-workform bg-body">
-                              <div class="pb-3">
-                                  <label class="mb-2">Email</label>
-                                  <input type="text" class="form-control" placeholder="Enter Name or Email">
-                              </div>
-                              <div class="col-lg-12 mt-4">
-                                  <div class="d-flex flex-wrap align-items-ceter justify-content-center">
-                                      <div class="btn btn-primary mr-4" data-dismiss="modal">Cancel</div>
-                                      <div class="btn btn-outline-primary" data-dismiss="modal">Create</div>
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
-                  </div>
-              </div>
-          </div>
-      </div>      <div class="content-page">
-     <div class="container-fluid add-form-list">
-        <div class="row">
-            <div class="col-sm-12">
-                <div class="card-body">
-                    <form method="post" action="{{ url_for('main.update_product', encrypted_id=auth_s.dumps(product.id)) }}" enctype="multipart/form-data">
-                        <div class="row">                            
-                            <!-- Select for Additional Categories if Manager -->
-                            {% if is_owner_or_manager %}
-                            <div class="col-md-12">
-                                <div class="form-group">
-                                    <label for="categories">Categories:</label>
-                                    <select id="categories" name="category_ids[]" class="form-control select2-multiple" multiple>
-                                        {% for category in all_categories %}
-                                        <option value="{{ category.id }}" {% if category.id in selected_categories %}selected{% endif %}>{{ category.name }}</option>
-                                        {% endfor %}
-                                        
-                                    </select>
-                                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#newCategoryModal">
-                                        Add New Category
-                                      </button>
-                                </div>                                
-                            </div>
-                                <div class="col-md-12">
-                                    <div class="form-group">
-                                        <label for="managers">Managers:</label>
-                                        <select name="managers[]" multiple id="managers" class="selectpicker form-control" data-live-search="true">
-                                            {% for user in all_users %}
-                                                <option value="{{ user.id }}" 
-                                                        {% if user.id in selected_managers %} selected {% endif %}
-                                                        {% if user.id == product.owner_id %} disabled {% endif %}>
-                                                    {{ user.name }} {{ user.surname }}
-                                                </option>
-                                            {% endfor %}
-                                        </select>                                        
-                                    </div>
-                                </div>
-                                <div class="col-md-12">
-                                    <div class="form-group">
-                                        <label for="projects">Project:</label>
-                                        <select id="projects" name="project_id" class="form-control select2" required>
-                                            {% for project in all_projects %}
-                                            <option value="{{ project.id }}" {% if project.id == selected_project %}selected{% endif %}>{{ project.name }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                </div>
-                            {% endif %}
-                            
-                            <!-- Input Fields -->
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Name *</label>
-                                    <input type="text" name="name" class="form-control" value="{{ product.name }}" required {% if not is_owner_or_manager %}disabled{% endif %}>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Description</label>
-                                    <textarea name="description" class="form-control" {% if not is_owner_or_manager %}disabled{% endif %}>{{ product.description }}</textarea>
-                                </div>
-                            </div>
-                            <div class="col-md-12">
-                                <div class="form-group">
-                                    <label>Quantity *</label>
-                                    <input type="number" name="quantity" class="form-control" value="{{ product.quantity }}" required {% if not is_owner_or_manager %}disabled{% endif %}>
-                                </div>
-                            </div>
-                            {% if is_owner_or_manager %}
-                            <div class="col-md-12">
-                                <div class="form-group">
-                            <!-- Button trigger modal -->
-                            <label>Location *</label>
-                            <select name="location_id" id="location_id" class="selectpicker form-control" required>
-                                <option value="" disabled selected>Select a Location</option>
-                                {% for location in all_locations %}
-                                <option value="{{ location.id }}" {% if location.id == selected_location %}selected{% endif %}>
-                                    {{ location.pavilion }} - {{ location.room if location.room }} - {{ location.cabinet if location.cabinet }}
-                                </option>
-                                {% endfor %}
-                            </select>                            
-                            <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#newLocationModal">
-                                Add New Location
-                            </button>
-                            </div></div>
-                            <!-- Submit Button -->
-                            <div class="col-md-12">
-                                <button type="submit" class="btn btn-primary" {% if not is_owner_or_manager %}disabled{% endif %}>Update Product</button>
-                            </div>
-                        </div>
-                        {% endif %}
-                    </form>
+    <style>
+        :root {
+            --primary-color: #4c63d2;
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+            --light-bg: #f8f9fa;
+            --border-radius: 12px;
+            --shadow: 0 4px 25px rgba(0, 0, 0, 0.1);
+            --shadow-hover: 0 8px 35px rgba(0, 0, 0, 0.15);
+            --sidebar-width: 260px;
+            /* Larghezza tipica della sidebar di navigazione */
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+        }
+
+        /* FIXED: Wrapper principale che tiene conto della sidebar */
+        .page-wrapper {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        /* FIXED: Main container con padding appropriato */
+        .main-container {
+            padding: 2rem;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .product-header {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .product-hero {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .product-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="10" r="0.5" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>') repeat;
+            opacity: 0.1;
+        }
+
+        .product-title {
+            position: relative;
+            z-index: 1;
+        }
+
+        .product-title h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .product-subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin: 0;
+        }
+
+        .product-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            padding: 1.5rem 2rem;
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-top: 0.25rem;
+        }
+
+        /* FIXED: Layout della griglia migliorato e centrato */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            align-items: start;
+            max-width: 1400px;
+            margin: 0 auto 2rem auto;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            min-width: 0;
+            /* Previene overflow */
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            position: sticky;
+            top: 2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            background: transparent;
+            border-bottom: 2px solid #f8f9fa;
+            padding: 1.5rem 2rem 1rem;
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-body {
+            padding: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-control {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(76, 99, 210, 0.1);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(76, 99, 210, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+            border: none;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
+            border: none;
+        }
+
+        .btn-outline-primary {
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            background: transparent;
+        }
+
+        .btn-outline-primary:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        /* Booking Section Styles */
+        .booking-section {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .booking-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .booking-content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            min-height: 600px;
+        }
+
+        .calendar-container {
+            padding: 2rem;
+        }
+
+        .booking-sidebar {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-left: 1px solid #e9ecef;
+        }
+
+        .booking-form {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .booking-status {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .status-empty {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 2px dashed #dee2e6;
+        }
+
+        .status-selected {
+            background: #e7f3ff;
+            color: #0066cc;
+            border: 2px solid #b3d9ff;
+        }
+
+        .status-available {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+
+        .status-unavailable {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+
+        .legend {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+        }
+
+        .legend-color {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            margin-right: 0.75rem;
+        }
+
+        .available-color {
+            background: #d4edda;
+        }
+
+        .unavailable-color {
+            background: #f8d7da;
+        }
+
+        .selected-color {
+            background: rgba(76, 99, 210, 0.3);
+        }
+
+        .today-color {
+            background: rgba(76, 99, 210, 0.1);
+        }
+
+        /* Manager Tags */
+        .manager-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .manager-tag {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        /* Category Tags */
+        .category-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .category-tag {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        /* Calendar Customization */
+        .fc {
+            --fc-border-color: #e9ecef;
+            --fc-button-bg-color: var(--primary-color);
+            --fc-button-border-color: var(--primary-color);
+            --fc-button-hover-bg-color: #4c5bd4;
+            --fc-button-active-bg-color: #4058d0;
+        }
+
+        .fc-theme-standard .fc-scrollgrid {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .fc-day-today {
+            background: rgba(76, 99, 210, 0.1) !important;
+        }
+
+        .fc-day:hover {
+            background: rgba(76, 99, 210, 0.05) !important;
+            cursor: pointer;
+        }
+
+        .fc-highlight {
+            background: rgba(76, 99, 210, 0.2) !important;
+        }
+
+        /* FIXED: Responsive Design migliorato */
+        @media (max-width: 1600px) {
+            .content-grid {
+                max-width: 1200px;
+            }
+        }
+
+        @media (max-width: 1400px) {
+            .content-grid {
+                grid-template-columns: 1fr 320px;
+                gap: 1.5rem;
+                max-width: 1000px;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .page-wrapper {
+                margin-left: 0;
+            }
+
+            .content-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+                max-width: 800px;
+            }
+
+            .sidebar {
+                position: static;
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 1rem;
+            }
+
+            .sidebar .card {
+                flex: 1;
+                min-width: 300px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 1rem;
+            }
+
+            .product-hero {
+                padding: 1.5rem;
+            }
+
+            .product-title h1 {
+                font-size: 2rem;
+            }
+
+            .booking-content {
+                grid-template-columns: 1fr;
+            }
+
+            .booking-sidebar {
+                border-left: none;
+                border-top: 1px solid #e9ecef;
+            }
+
+            .product-stats {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.5rem;
+                padding: 1rem;
+            }
+
+            .sidebar {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+
+            .sidebar .card {
+                min-width: auto;
+            }
+
+            .content-grid {
+                max-width: 100%;
+            }
+        }
+
+        /* Loading State */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+            position: relative;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin: -10px 0 0 -10px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Animation */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* FIXED: Override della sidebar di navigazione per evitare sovrapposizioni */
+        .iq-sidebar {
+            position: fixed !important;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            width: var(--sidebar-width);
+        }
+
+        .iq-top-navbar {
+            margin-left: var(--sidebar-width);
+            position: fixed;
+            top: 0;
+            right: 0;
+            z-index: 999;
+        }
+
+        /* Per dispositivi mobili, nascondi il margin della sidebar */
+        @media (max-width: 1200px) {
+            .iq-top-navbar {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+
+<body class="fade-in">
+    <!-- Include sidebar and navbar -->
+    {% include "./backend/sidebar.html" %}
+    {% include "./backend/navbar.html" %}
+
+    <!-- FIXED: Wrapper principale che tiene conto della sidebar -->
+    <div class="page-wrapper">
+        <div class="main-container">
+            <!-- Product Header -->
+            <div class="product-header">
+                <div class="product-hero">
+                    <div class="product-title">
+                        <h1><i class="fas fa-box"></i> {{ product.name }}</h1>
+                        <p class="product-subtitle">Codice: {{ product.unique_code }}</p>
+                    </div>
+                </div>
+
+                <div class="product-stats">
+                    <div class="stat-item">
+                        <span class="stat-number">{{ product.quantity }}</span>
+                        <div class="stat-label">Quantità Totale</div>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">{{ reserved_quantity }}</span>
+                        <div class="stat-label">Attualmente in Prestito</div>
+                    </div>
+
+                    <div class="stat-item">
+                        <span class="stat-number">{{ product.managers|length }}</span>
+                        <div class="stat-label">Manager</div>
+                    </div>
                 </div>
             </div>
 
+            <!-- Main Content Grid -->
+            <div class="content-grid">
+                <!-- Main Content -->
+                <div class="main-content">
+                    <!-- Product Edit Form (if user is owner/manager) -->
+                    {% if is_owner_or_manager %}
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="card-title">
+                                <i class="fas fa-edit"></i> Modifica Prodotto
+                            </h4>
+                        </div>
+                        <div class="card-body">
+                            <form method="post"
+                                action="{{ url_for('main.update_product', encrypted_id=auth_s.dumps(product.id)) }}"
+                                enctype="multipart/form-data">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <i class="fas fa-tag"></i> Nome Prodotto
+                                            </label>
+                                            <input type="text" name="name" class="form-control"
+                                                value="{{ product.name }}" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <i class="fas fa-cubes"></i> Quantità
+                                            </label>
+                                            <input type="number" name="quantity" class="form-control"
+                                                value="{{ product.quantity }}" required min="1">
+                                        </div>
+                                    </div>
+                                </div>
 
-        <div class="row">
-            <div class="col-lg-12">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-align-left"></i> Descrizione
+                                    </label>
+                                    <textarea name="description" class="form-control"
+                                        rows="3">{{ product.description }}</textarea>
+                                </div>
 
-                    <div class="card-body">
-                            <div class="form-group">
-                                {% if is_owner_or_manager %}
-                                <label>Make the Product unavailable:</label>
-                                {% else %}
-                                <label>Request Product:</label>
-                                {% endif %}
-                            </div>
-                            <div class="quantity-selector">
-                                <label for="quantity">Seleziona quantità:</label>
-                                <input type="number" id="quantity" min="1" value="1">
-                                <input type="hidden" id="product-id" value="{{ encrypted_product_id }}">
-                            </div>
-                            <div class="booking-info">
-                                <span id="booking-status"></span>
-                                <button id="confirm-booking" style="display: none;">Conferma Prenotazione</button>
-                            </div>
-                            <div id="calendar"></div>
-                            <div id="debug-log"></div>
-                      </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <i class="fas fa-project-diagram"></i> Progetto
+                                            </label>
+                                            <select name="project_id" class="form-control select2" required>
+                                                {% for project in all_projects %}
+                                                <option value="{{ project.id }}" {% if project.id==selected_project
+                                                    %}selected{% endif %}>
+                                                    {{ project.name }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <i class="fas fa-map-marker-alt"></i> Posizione
+                                            </label>
+                                            <select name="location_id" class="form-control select2" required>
+                                                {% for location in all_locations %}
+                                                <option value="{{ location.id }}" {% if location.id==selected_location
+                                                    %}selected{% endif %}>
+                                                    {{ location.pavilion }} - {{ location.room or 'N/A' }} - {{
+                                                    location.cabinet or 'N/A' }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                            <button type="button" class="btn btn-outline-primary btn-sm mt-2"
+                                                data-toggle="modal" data-target="#newLocationModal">
+                                                <i class="fas fa-plus"></i> Nuova Posizione
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-tags"></i> Categorie
+                                    </label>
+                                    <select name="category_ids[]" class="form-control select2-multiple" multiple>
+                                        {% for category in all_categories %}
+                                        <option value="{{ category.id }}" {% if category.id in selected_categories
+                                            %}selected{% endif %}>
+                                            {{ category.name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="button" class="btn btn-outline-primary btn-sm mt-2"
+                                        data-toggle="modal" data-target="#newCategoryModal">
+                                        <i class="fas fa-plus"></i> Nuova Categoria
+                                    </button>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-users"></i> Manager
+                                    </label>
+                                    <select name="managers[]" multiple class="form-control select2-multiple">
+                                        {% for user in all_users %}
+                                        <option value="{{ user.id }}" {% if user.id in selected_managers %} selected {%
+                                            endif %} {% if user.id==product.owner_id %} disabled {% endif %}>
+                                            {{ user.name }} {{ user.surname }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="text-right">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-save"></i> Salva Modifiche
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                    
+                    {% endif %}
+
+                    <!-- Booking Calendar -->
+                    <div class="booking-section">
+                        <div class="booking-header">
+                            <h2>
+                                <i class="fas fa-calendar-alt"></i>
+                                {% if is_owner_or_manager %}
+                                Gestisci Disponibilità
+                                {% else %}
+                                Prenota Prodotto
+                                {% endif %}
+                            </h2>
+                            <p>Seleziona le date per il prestito usando il calendario o i campi sottostanti</p>
+                        </div>
+
+                        <div class="booking-content">
+                            <div class="calendar-container">
+                                <div id="calendar"></div>
+                            </div>
+
+                            <div class="booking-sidebar">
+                                <div class="booking-form">
+                                    <h5><i class="fas fa-cog"></i> Configurazione</h5>
+
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <i class="fas fa-cubes"></i> Quantità
+                                        </label>
+                                        <input type="number" id="quantity" class="form-control" min="1"
+                                            max="{{ product.quantity }}" value="1">
+                                        <input type="hidden" id="product-id" value="{{ encrypted_product_id }}">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <i class="fas fa-calendar-day"></i> Data Inizio
+                                        </label>
+                                        <input type="date" id="startDate" class="form-control">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <i class="fas fa-calendar-day"></i> Data Fine
+                                        </label>
+                                        <input type="date" id="endDate" class="form-control">
+                                    </div>
+                                </div>
+
+                                <div class="booking-form">
+                                    <h5><i class="fas fa-info-circle"></i> Stato Selezione</h5>
+                                    <div id="booking-status" class="booking-status status-empty">
+                                        <i class="fas fa-hand-pointer"></i> Seleziona le date per iniziare
+                                    </div>
+
+                                    <button id="clear-selection"
+                                        class="btn btn-outline-secondary btn-sm btn-block mb-3">
+                                        <i class="fas fa-eraser"></i> Pulisci Selezione
+                                    </button>
+
+                                    <button id="confirm-booking" class="btn btn-success btn-block" disabled>
+                                        <i class="fas fa-check"></i> Conferma Prenotazione
+                                    </button>
+                                </div>
+
+                                <div class="legend">
+                                    <h6><i class="fas fa-palette"></i> Legenda</h6>
+                                    <div class="legend-item">
+                                        <div class="legend-color available-color"></div>
+                                        <span>Disponibile</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color unavailable-color"></div>
+                                        <span>Non Disponibile</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color selected-color"></div>
+                                        <span>Periodo Selezionato</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color today-color"></div>
+                                        <span>Oggi</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar -->
+                <div class="sidebar">
+                    <!-- Product Info -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title">
+                                <i class="fas fa-info-circle"></i> Informazioni Prodotto
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <strong><i class="fas fa-align-left"></i> Descrizione:</strong>
+                                <p class="mt-2">{{ product.description or 'Nessuna descrizione disponibile' }}</p>
+                            </div>
+
+                            <div class="mb-3">
+                                <strong><i class="fas fa-map-marker-alt"></i> Posizione:</strong>
+                                <p class="mt-1">
+                                    {{ product.location.pavilion }}
+                                    {% if product.location.room %} - Stanza: {{ product.location.room }}{% endif %}
+                                    {% if product.location.cabinet %} - Armadio: {{ product.location.cabinet }}{% endif
+                                    %}
+                                </p>
+                            </div>
+
+                            <div class="mb-3">
+                                <strong><i class="fas fa-project-diagram"></i> Progetto:</strong>
+                                <p class="mt-1">{{ product.project.name }}</p>
+                            </div>
+
+                            <div class="mb-3">
+                                <strong><i class="fas fa-tags"></i> Categorie:</strong>
+                                <div class="category-tags">
+                                    {% for category in product.categories %}
+                                    <span class="category-tag">{{ category.name }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div>
+                                <strong><i class="fas fa-users"></i> Manager:</strong>
+                                <div class="manager-tags">
+                                    {% for manager in product.managers %}
+                                    <span class="manager-tag"
+                                        title="{{ manager.name }} {{ manager.surname }} ({{ manager.email }})">
+                                        {{ manager.name }} {{ manager.surname }}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title">
+                                <i class="fas fa-bolt"></i> Azioni Rapide
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <a href="{{ url_for('main.list_products') }}"
+                                class="btn btn-outline-primary btn-block mb-2">
+                                <i class="fas fa-arrow-left"></i> Torna alla Lista
+                            </a>
+
+                            {% if is_owner_or_manager %}
+                            <a href="{{ url_for('main.toggle_product', product_id=product.id) }}"
+                                class="btn btn-warning btn-block mb-2">
+                                <i class="fas fa-{% if product.is_active %}eye-slash{% else %}eye{% endif %}"></i>
+                                {% if product.is_active %}Nascondi{% else %}Mostra{% endif %} Prodotto
+                            </a>
+                            {% endif %}
+
+                            <a href="{{ url_for('main.loan_requests') }}" class="btn btn-info btn-block">
+                                <i class="fas fa-history"></i> I Miei Prestiti
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-                <!-- Page end  -->
-            </div>
-      </div>
     </div>
-    <!-- Modal -->
-    <div class="modal fade" id="newLocationModal" tabindex="-1" role="dialog" aria-labelledby="newLocationModalLabel" aria-hidden="true">
+
+    <!-- Modals -->
+    <!-- New Category Modal -->
+    <div class="modal fade" id="newCategoryModal" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="newLocationModalLabel">Add New Location</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus"></i> Nuova Categoria
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="new-category-form">
+                        <div class="form-group">
+                            <label>Nome Categoria</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Salva Categoria
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Location Modal -->
+    <div class="modal fade" id="newLocationModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus"></i> Nuova Posizione
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
                 <div class="modal-body">
                     <form id="new-location-form">
                         <div class="form-group">
-                            <label for="pavilion">Pavilion</label>
-                            <input type="text" class="form-control" id="pavilion" name="pavilion" required>
+                            <label>Padiglione</label>
+                            <input type="text" class="form-control" name="pavilion" required>
                         </div>
                         <div class="form-group">
-                            <label for="room">Room</label>
-                            <input type="text" class="form-control" id="room" name="room">
+                            <label>Stanza</label>
+                            <input type="text" class="form-control" name="room">
                         </div>
                         <div class="form-group">
-                            <label for="cabinet">Cabinet</label>
-                            <input type="text" class="form-control" id="cabinet" name="cabinet">
+                            <label>Armadio</label>
+                            <input type="text" class="form-control" name="cabinet">
                         </div>
-                        <button type="submit" class="btn btn-primary">Add Location</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Salva Posizione
+                        </button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
-    <!-- The Modal -->
-<div class="modal fade" id="newCategoryModal" tabindex="-1" role="dialog" aria-labelledby="categoryModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="categoryModalLabel">New Category</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <form id="new-category-form">
-            <div class="form-group">
-              <label for="category-name">Category Name</label>
-              <input type="text" class="form-control" id="category-name" name="name" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Save Category</button>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-    <!-- Wrapper End-->
-    <footer class="iq-footer">
-            <div class="container-fluid">
-            <div class="card">
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-lg-6">
-                            <ul class="list-inline mb-0">
-                                <li class="list-inline-item"><a href="licy.html">Privacy Policy</a></li>
-                                <li class="list-inline-item"><a href="ervice.html">Terms of Use</a></li>
-                            </ul>
-                        </div>
-                        <div class="col-lg-6 text-right">
-                            <span class="mr-1"><script>document.write(new Date().getFullYear())</script>©</span> <a href="#" class="">POS Dash</a>.
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-<!-- Modal per confermare le date -->
-<div class="modal fade" id="confirmModal" tabindex="-1" role="dialog" aria-labelledby="confirmModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="confirmModalLabel">Confirm Dates</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                Are you sure you want to request these dates?
-                <div id="selectedDates"></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="button" id="confirmDates" class="btn btn-primary">Confirm</button>
-            </div>
-        </div>
-    </div>
-</div>
 
-<script>
-function openBookingModal(start, end, startStr, endStr) {
-    document.getElementById('startDate').value = startStr;
-    document.getElementById('endDate').value = endStr;
-    $('#bookingModal').modal('show');
-}
-</script>
-    </footer>
-    <!-- Backend Bundle JavaScript -->
+    <!-- Scripts -->
     <script src="../../static/js/backend-bundle.min.js"></script>
-   
-    
-
-    <script>
-        let calendar;
-let reservedDates = {};
-let bookingStart = null;
-let bookingEnd = null;
-let clickCount = 0;
-let productId = null; // Aggiungi questa variabile per memorizzare l'ID del prodotto
-
-function initializeCalendar() {
-    const calendarEl = document.getElementById('calendar');
-    calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        events: [],
-        selectable: true,
-        select: handleDateSelect,
-        unselectAuto: false,
-        validRange: {
-            start: new Date() // Imposta la data di inizio valida a oggi
-        },
-        selectConstraint: {
-            start: new Date() // Limita la selezione a date da oggi in poi
-        },
-        selectAllow: function(selectInfo) {
-            return selectInfo.start >= new Date().setHours(0,0,0,0);
-        }
-    });
-    calendar.render();
-    fetchReservedDates();
-}
-
-function fetchReservedDates() {
-    const quantity = parseInt(document.getElementById('quantity').value, 10);
-    const startDate = new Date();
-    const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + 3); // Fetch per i prossimi 3 mesi, puoi modificare questo valore
-
-    fetch('/check_availability_range', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-            'encrypted_id': productId,
-            'start_date': startDate.toISOString().split('T')[0],
-            'end_date': endDate.toISOString().split('T')[0],
-            'quantity': quantity
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        reservedDates = data;
-        updateCalendar();
-    })
-    .catch(error => console.error('Error:', error));
-}
-
-function updateCalendar() {
-    const quantity = parseInt(document.getElementById('quantity').value, 10);
-    calendar.removeAllEvents();
-
-    Object.entries(reservedDates).forEach(([date, info]) => {
-        calendar.addEvent({
-            start: date,
-            allDay: true,
-            backgroundColor: info.available ? 'green' : 'red',
-            borderColor: info.available ? 'green' : 'red',
-            title: info.available ? 'Available' : 'Not available'
-        });
-    });
-
-    if (bookingStart && bookingEnd) {
-        var startDate = new Date(bookingStart);
-        var endDate = new Date(bookingEnd);
-        while (startDate <= endDate) {
-            calendar.addEvent({
-                start: startDate,
-                allDay: true,
-                backgroundColor: 'yellow',
-                rendering: 'background'
-            });
-            startDate.setDate(startDate.getDate() + 1);
-        }
-    }
-}
-
-function handleDateSelect(selectInfo) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    if (selectInfo.start < today) {
-        calendar.unselect();
-        return;
-    }
-
-    clickCount++;
-    if (clickCount === 1) {
-        bookingStart = selectInfo.startStr;
-        bookingEnd = null;
-        document.getElementById('booking-status').textContent = `Data di inizio: ${bookingStart}`;
-    } else if (clickCount === 2) {
-        bookingEnd = selectInfo.startStr;
-        if (new Date(bookingEnd) < new Date(bookingStart)) {
-            let temp = bookingStart;
-            bookingStart = bookingEnd;
-            bookingEnd = temp;
-        }
-        document.getElementById('booking-status').textContent += ` - Data di fine: ${bookingEnd}`;
-        document.getElementById('confirm-booking').style.display = 'inline-block';
-        updateCalendar();
-    } else {
-        resetSelection();
-    }
-}
-
-function resetSelection() {
-    clickCount = 0;
-    bookingStart = null;
-    bookingEnd = null;
-    document.getElementById('booking-status').textContent = '';
-    document.getElementById('confirm-booking').style.display = 'none';
-    updateCalendar();
-}
-
-document.getElementById('confirm-booking').addEventListener('click', function() {
-    const quantity = parseInt(document.getElementById('quantity').value, 10);
-    fetch('/process_booking/' + productId, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-            'start_date': bookingStart,
-            'end_date': bookingEnd,
-            'quantity': quantity
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            alert('Prenotazione confermata dal ' + bookingStart + ' al ' + bookingEnd);
-            resetSelection();
-            fetchReservedDates(); // Aggiorna il calendario dopo la prenotazione
-        } else {
-            alert('Errore nella prenotazione: ' + data.message);
-        }
-    })
-    .catch(error => console.error('Error:', error));
-});
-
-document.getElementById('quantity').addEventListener('input', fetchReservedDates);
-
-window.onload = function() {
-    productId = document.getElementById('product-id').value; // Assicurati di avere un campo nascosto con l'ID del prodotto
-    initializeCalendar();
-};
-    </script>
-
-
-
-    <!-- Table Treeview JavaScript -->
-    <script src="../../static/js/table-treeview.js"></script>
-    <script>
-        $(document).ready(function() {
-            $('.select2-multiple').select2({
-                placeholder: "Select", // Placeholder se desiderato
-                allowClear: false // Permette all'utente di rimuovere tutte le selezioni
-            });
-        });
-        </script>
-        <script>
-            $(document).ready(function() {
-                $('#managers').select2({
-                    placeholder: "Select managers",
-                    allowClear: true,
-                    closeOnSelect: false
-                });
-            
-                // Prevent the removal of the owner from the managers list
-                $('#managers').on("select2:unselect", function (e) {
-                    if (e.params.data.id == "{{ product.owner_id }}") {
-                        // Re-add the owner if an attempt is made to remove it
-                        $(this).append(new Option(e.params.data.text, e.params.data.id, false, true)).trigger('change');
-                        alert("The owner cannot be removed as a manager.");
-                    }
-                });
-            });
-            
-            </script>
-            <script>
-                $('#new-location-form').on('submit', function(e) {
-    e.preventDefault();
-    var formData = $(this).serialize();
-
-    $.ajax({
-        type: 'POST',
-        url: '/add_location',
-        data: formData,
-        success: function(response) {
-            console.log('Success data:', response);
-            if (response && response.entity) {
-                // Crea la nuova opzione
-                var newOption = new Option(response.entity.name, response.entity.id, false, true);
-                // Aggiungi la nuova opzione alla selectpicker
-                $('#location_id').append(newOption).selectpicker('refresh');
-            }
-            // Chiudi il modal
-            $('#newLocationModal').modal('hide');
-            // Reset del form
-            $('#new-location-form')[0].reset();
-        },
-        error: function(xhr, status, error) {
-            console.error("Error in Ajax call", error);
-            alert('Error adding location. Please try again.');
-        }
-    });
-});
-
-            </script>
-<script>
-    $(document).ready(function() {
-    $('#new-category-form').on('submit', function(e) {
-        e.preventDefault();
-        var formData = $(this).serialize();
-
-        $.ajax({
-            type: 'POST',
-            url: '/add_category',
-            data: formData,
-            success: function(response) {
-                console.log('Success data:', response);
-                if (response && response.entity) {
-                    // Crea la nuova opzione
-                    var newOption = new Option(response.entity.name, response.entity.id, false, true);
-                    // Aggiungi la nuova opzione alla selectpicker
-                    $('#categories').append(newOption).trigger('change');
-                }
-                // Chiudi il modal
-                $('#newCategoryModal').modal('hide');
-                // Reset del form
-                $('#new-category-form')[0].reset();
-            },
-            error: function(xhr, status, error) {
-                console.error("Error in Ajax call", error);
-                alert('Error adding category. Please try again.');
-            }
-        });
-    });
-});
-</script>
-
-    <!-- Chart Custom JavaScript -->
-    <script src="../../static/js/customizer.js"></script>
-
-    <!-- Chart Custom JavaScript -->
-    <script async src="../../static/js/chart-custom.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.3.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+
     <script>
-        $(document).ready(function() {
-            var messages = $('#flash-messages').data('messages');
-            if (messages) {
-                messages.forEach(function(message) {
-                    Swal.fire({
-                        icon: message[0],
-                        title: message[1]
-                    });
-                });
+        // Global variables
+        let calendar;
+        let reservedDates = {};
+        let selectedStart = null;
+        let selectedEnd = null;
+        let productId = null;
+
+        // Initialize everything when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function () {
+            // Get product ID from hidden input
+            const productIdElement = document.getElementById('product-id');
+            if (productIdElement) {
+                productId = productIdElement.value;
             }
+
+            // Initialize components
+            initializeSelect2();
+            initializeCalendar();
+            initializeEventListeners();
+            setMinDates();
+        });
+
+        // Initialize Select2
+        function initializeSelect2() {
+            $('.select2').select2({
+                theme: 'bootstrap4',
+                width: '100%'
+            });
+
+            $('.select2-multiple').select2({
+                theme: 'bootstrap4',
+                width: '100%',
+                placeholder: 'Seleziona opzioni',
+                allowClear: true
+            });
+        }
+
+        // Initialize Calendar
+        function initializeCalendar() {
+            const calendarEl = document.getElementById('calendar');
+
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,dayGridWeek'
+                },
+                selectable: true,
+                selectMirror: true,
+                unselectAuto: false,
+                select: handleDateSelect,
+                unselect: handleUnselect,
+                selectAllow: function (selectInfo) {
+                    return selectInfo.start >= new Date().setHours(0, 0, 0, 0);
+                },
+                validRange: {
+                    start: new Date()
+                },
+                events: [],
+                height: 'auto',
+                aspectRatio: 1.35,
+                eventDisplay: 'background',
+                selectOverlap: false,
+                locale: 'it'
+            });
+
+            calendar.render();
+            fetchReservedDates();
+        }
+
+        // Handle date selection from calendar
+        function handleDateSelect(selectInfo) {
+            selectedStart = selectInfo.start;
+            selectedEnd = new Date(selectInfo.end.getTime() - 24 * 60 * 60 * 1000);
+
+            updateDateInputs();
+            updateBookingStatus();
+            checkAvailability();
+        }
+
+        // Handle deselection
+        function handleUnselect() {
+            clearSelection();
+        }
+
+        // Clear selection
+        function clearSelection() {
+            selectedStart = null;
+            selectedEnd = null;
+            calendar.unselect();
+            updateDateInputs();
+            updateBookingStatus();
+        }
+
+        // Update date inputs
+        function updateDateInputs() {
+            const startInput = document.getElementById('startDate');
+            const endInput = document.getElementById('endDate');
+
+            if (selectedStart && selectedEnd) {
+                startInput.value = formatDateForInput(selectedStart);
+                endInput.value = formatDateForInput(selectedEnd);
+            } else {
+                startInput.value = '';
+                endInput.value = '';
+            }
+        }
+
+        // Update booking status display
+        function updateBookingStatus() {
+            const statusDiv = document.getElementById('booking-status');
+            const confirmButton = document.getElementById('confirm-booking');
+
+            if (!selectedStart || !selectedEnd) {
+                statusDiv.className = 'booking-status status-empty';
+                statusDiv.innerHTML = '<i class="fas fa-hand-pointer"></i> Seleziona le date per iniziare';
+                confirmButton.disabled = true;
+            } else {
+                const startStr = formatDateForDisplay(selectedStart);
+                const endStr = formatDateForDisplay(selectedEnd);
+                const days = Math.ceil((selectedEnd.getTime() - selectedStart.getTime()) / (24 * 60 * 60 * 1000)) + 1;
+
+                statusDiv.className = 'booking-status status-selected';
+                statusDiv.innerHTML = `
+                    <i class="fas fa-calendar-check"></i> 
+                    <strong>Periodo selezionato:</strong><br>
+                    ${startStr} - ${endStr}<br>
+                    <small>(${days} giorni)</small>
+                `;
+            }
+        }
+
+        // Check availability for selected dates
+        function checkAvailability() {
+            if (!selectedStart || !selectedEnd) return;
+
+            const quantity = parseInt(document.getElementById('quantity').value) || 1;
+            const statusDiv = document.getElementById('booking-status');
+            const confirmButton = document.getElementById('confirm-booking');
+
+            // Se non abbiamo ancora dati di disponibilità, assumiamo che sia disponibile
+            if (Object.keys(reservedDates).length === 0) {
+                statusDiv.className = 'booking-status status-available';
+                const days = Math.ceil((selectedEnd.getTime() - selectedStart.getTime()) / (24 * 60 * 60 * 1000)) + 1;
+                statusDiv.innerHTML = `
+                    <i class="fas fa-check-circle"></i> 
+                    <strong>Periodo selezionato!</strong><br>
+                    ${formatDateForDisplay(selectedStart)} - ${formatDateForDisplay(selectedEnd)}<br>
+                    <small>(${days} giorni) - Quantità: ${quantity}</small>
+                `;
+                confirmButton.disabled = false;
+                return;
+            }
+
+            let isAvailable = true;
+            let currentDate = new Date(selectedStart);
+            const endDate = new Date(selectedEnd);
+
+            while (currentDate <= endDate) {
+                const dateStr = formatDateForInput(currentDate);
+                // Se la data non è nei reservedDates, assumiamo sia disponibile
+                // Se è nei reservedDates, controlliamo il flag available
+                if (reservedDates[dateStr] && !reservedDates[dateStr].available) {
+                    isAvailable = false;
+                    break;
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+
+            if (isAvailable) {
+                statusDiv.className = 'booking-status status-available';
+                const days = Math.ceil((selectedEnd.getTime() - selectedStart.getTime()) / (24 * 60 * 60 * 1000)) + 1;
+                statusDiv.innerHTML = `
+                    <i class="fas fa-check-circle"></i> 
+                    <strong>Periodo disponibile!</strong><br>
+                    ${formatDateForDisplay(selectedStart)} - ${formatDateForDisplay(selectedEnd)}<br>
+                    <small>(${days} giorni) - Quantità: ${quantity}</small>
+                `;
+                confirmButton.disabled = false;
+            } else {
+                statusDiv.className = 'booking-status status-unavailable';
+                statusDiv.innerHTML = `
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    <strong>Periodo non disponibile</strong><br>
+                    Alcune date selezionate non sono disponibili per la quantità richiesta.
+                `;
+                confirmButton.disabled = true;
+            }
+        }
+
+        // Fetch reserved dates from server
+        function fetchReservedDates() {
+            const quantity = parseInt(document.getElementById('quantity').value, 10);
+            const startDate = new Date();
+            const endDate = new Date(startDate);
+            endDate.setMonth(endDate.getMonth() + 3);
+
+            fetch('/check_availability_range', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'encrypted_id': productId,
+                    'start_date': startDate.toISOString().split('T')[0],
+                    'end_date': endDate.toISOString().split('T')[0],
+                    'quantity': quantity
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    reservedDates = data;
+                    updateCalendarAvailability();
+                    checkAvailability();
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Update calendar availability display
+        function updateCalendarAvailability() {
+            // Remove existing background events
+            const existingEvents = calendar.getEvents().filter(event => event.display === 'background');
+            existingEvents.forEach(event => event.remove());
+
+            // Add new events based on availability data
+            Object.entries(reservedDates).forEach(([date, info]) => {
+                calendar.addEvent({
+                    start: date,
+                    display: 'background',
+                    backgroundColor: info.available ? '#d4edda' : '#f8d7da',
+                    borderColor: info.available ? '#c3e6cb' : '#f5c6cb',
+                    classNames: [info.available ? 'available-date' : 'unavailable-date']
+                });
+            });
+        }
+
+        // Initialize event listeners
+        function initializeEventListeners() {
+            // Date input change handlers
+            document.getElementById('startDate').addEventListener('change', function () {
+                const startValue = this.value;
+                if (startValue) {
+                    selectedStart = new Date(startValue);
+
+                    const endValue = document.getElementById('endDate').value;
+                    if (endValue) {
+                        selectedEnd = new Date(endValue);
+                        if (selectedEnd < selectedStart) {
+                            selectedEnd = selectedStart;
+                            document.getElementById('endDate').value = startValue;
+                        }
+                    }
+
+                    updateCalendarSelection();
+                    updateBookingStatus();
+                    checkAvailability();
+                }
+            });
+
+            document.getElementById('endDate').addEventListener('change', function () {
+                const endValue = this.value;
+                const startValue = document.getElementById('startDate').value;
+
+                if (endValue && startValue) {
+                    selectedStart = new Date(startValue);
+                    selectedEnd = new Date(endValue);
+
+                    if (selectedEnd < selectedStart) {
+                        selectedEnd = selectedStart;
+                        this.value = startValue;
+                    }
+
+                    updateCalendarSelection();
+                    updateBookingStatus();
+                    checkAvailability();
+                }
+            });
+
+            // Quantity change handler
+            document.getElementById('quantity').addEventListener('input', function () {
+                fetchReservedDates();
+            });
+
+            // Clear selection button
+            document.getElementById('clear-selection').addEventListener('click', clearSelection);
+
+            // Confirm booking button
+            document.getElementById('confirm-booking').addEventListener('click', confirmBooking);
+
+            // Modal form handlers
+            initializeModalForms();
+        }
+
+        // Update calendar selection
+        function updateCalendarSelection() {
+            calendar.unselect();
+            if (selectedStart && selectedEnd) {
+                calendar.select(selectedStart, new Date(selectedEnd.getTime() + 24 * 60 * 60 * 1000));
+            }
+        }
+
+        // Confirm booking
+        function confirmBooking() {
+            if (!selectedStart || !selectedEnd) return;
+
+            const quantity = parseInt(document.getElementById('quantity').value) || 1;
+            const button = document.getElementById('confirm-booking');
+
+            // Show loading state
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Elaborando...';
+            button.disabled = true;
+            button.classList.add('loading');
+
+            fetch('/process_booking/' + productId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'start_date': formatDateForInput(selectedStart),
+                    'end_date': formatDateForInput(selectedEnd),
+                    'quantity': quantity
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Prenotazione Confermata!',
+                            html: `
+                            <strong>Periodo:</strong> ${formatDateForDisplay(selectedStart)} - ${formatDateForDisplay(selectedEnd)}<br>
+                            <strong>Quantità:</strong> ${quantity}
+                        `,
+                            timer: 3000,
+                            showConfirmButton: false
+                        });
+
+                        clearSelection();
+                        fetchReservedDates();
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Errore nella Prenotazione',
+                            text: data.message
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Errore di Connessione',
+                        text: 'Si è verificato un errore. Riprova più tardi.'
+                    });
+                })
+                .finally(() => {
+                    // Reset button
+                    button.innerHTML = '<i class="fas fa-check"></i> Conferma Prenotazione';
+                    button.disabled = false;
+                    button.classList.remove('loading');
+                });
+        }
+
+        // Initialize modal forms
+        function initializeModalForms() {
+            // New category form
+            document.getElementById('new-category-form').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+
+                fetch('/add_category', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Add new option to select
+                            const select = document.querySelector('select[name="category_ids[]"]');
+                            const newOption = new Option(data.entity.name, data.entity.id, true, true);
+                            select.add(newOption);
+                            $(select).trigger('change');
+
+                            // Close modal and reset form
+                            $('#newCategoryModal').modal('hide');
+                            this.reset();
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Categoria Aggiunta!',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Errore',
+                                text: data.message
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Errore',
+                            text: 'Si è verificato un errore.'
+                        });
+                    });
+            });
+
+            // New location form
+            document.getElementById('new-location-form').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+
+                fetch('/add_location', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Add new option to select
+                            const select = document.querySelector('select[name="location_id"]');
+                            const newOption = new Option(data.entity.name, data.entity.id, true, true);
+                            select.add(newOption);
+                            $(select).trigger('change');
+
+                            // Close modal and reset form
+                            $('#newLocationModal').modal('hide');
+                            this.reset();
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Posizione Aggiunta!',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Errore',
+                                text: data.message
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Errore',
+                            text: 'Si è verificato un errore.'
+                        });
+                    });
+            });
+        }
+
+        // Set minimum dates for date inputs
+        function setMinDates() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('startDate').min = today;
+            document.getElementById('endDate').min = today;
+        }
+
+        // Utility functions
+        function formatDateForInput(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function formatDateForDisplay(date) {
+            return date.toLocaleDateString('it-IT', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        }
+
+        // Initialize tooltips
+        $(function () {
+            $('[data-toggle="tooltip"]').tooltip()
         });
     </script>
-    
-    <!-- app JavaScript -->
-    <script src="../../static/js/app.js"></script>
-  </body>
+
+    <!-- Include notifications -->
+    {% include "./backend/notifications.html" %}
+</body>
+
 </html>
