@@ -1,0 +1,16 @@
+SCADENZA OGGI!
+
+Ciao {{ borrower.name }} {{ borrower.surname }},
+
+OGGI ({{ due_date }}) E' IL GIORNO DI SCADENZA PER LA RESTITUZIONE!
+
+PRODOTTO IN PRESTITO:
+- Nome: {{ product.name }}
+- Codice: {{ product.unique_code }}
+- Quantita: {{ loan.quantity }}
+- SCADENZA: OGGI {{ due_date }}
+
+RESTITUISCI IL PRODOTTO OGGI!
+
+Cordiali saluti,
+Sistema Gestione Inventario

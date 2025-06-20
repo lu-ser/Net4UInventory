@@ -28,7 +28,9 @@ from io import BytesIO, TextIOWrapper
 import tempfile
 import pandas as pd
 from .utils.utils import flash_message, send_email
-
+from app.services.reminder_service import ReminderService
+from app.models import ReminderNotification
+from datetime import timedelta
 main_blueprint = Blueprint('main', __name__)
 
 @main_blueprint.route('/')
@@ -1493,3 +1495,67 @@ def dashboard():
                            total_returns=total_returns,
                            overdue_loans=overdue_loans,
                            messages=messages)
+
+@main_blueprint.route('/admin/reminders/status')
+@login_required
+def reminder_status():
+    """Mostra lo stato del sistema promemoria (solo per admin)"""
+    if current_user.role != 'admin':
+        flash('Access denied', 'error')
+        return redirect(url_for('main.index'))
+    
+    reminder_service = ReminderService()
+    
+    # Statistiche
+    total_notifications = db.session.query(ReminderNotification).count()
+    recent_notifications = db.session.query(ReminderNotification).filter(
+        ReminderNotification.sent_at >= datetime.utcnow() - timedelta(days=7)
+    ).count()
+    
+    # Prestiti in scadenza
+    loans_needing_reminders = reminder_service.get_loans_needing_reminders()
+    
+    context = {
+        'config': reminder_service.config,
+        'total_notifications': total_notifications,
+        'recent_notifications': recent_notifications,
+        'loans_needing_reminders': len(loans_needing_reminders),
+        'is_enabled': reminder_service.config.get('settings', {}).get('enabled', False)
+    }
+    
+    return render_template('backend/reminder_status.html', **context)
+
+@main_blueprint.route('/admin/reminders/test', methods=['POST'])
+@login_required
+def test_reminders():
+    """Testa l'invio di promemoria manualmente (solo per admin)"""
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        reminder_service = ReminderService()
+        stats = reminder_service.process_all_reminders()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Test completato. Processati: {stats["processed"]}, Inviati: {stats["sent"]}, Errori: {stats["errors"]}'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@main_blueprint.route('/admin/reminders/config', methods=['GET', 'POST'])
+@login_required
+def reminder_config():
+    """Gestisce la configurazione dei promemoria"""
+    if current_user.role != 'admin':
+        flash('Access denied', 'error')
+        return redirect(url_for('main.index'))
+    
+    if request.method == 'POST':
+        # Salva la nuova configurazione (implementa secondo le tue esigenze)
+        flash('Configurazione aggiornata', 'success')
+        return redirect(url_for('main.reminder_status'))
+    
+    reminder_service = ReminderService()
+    return render_template('backend/reminder_config.html', config=reminder_service.config)

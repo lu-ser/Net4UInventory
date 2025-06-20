@@ -1,0 +1,12 @@
+2025-06-20 14:30:15,336 - reminder_cron - INFO - === Avvio controllo promemoria ===
+2025-06-20 14:30:15,435 - reminder_service - INFO - Non è il momento di inviare promemoria
+2025-06-20 14:30:15,437 - reminder_cron - INFO - Promemoria processati: 0
+2025-06-20 14:30:15,437 - reminder_cron - INFO - Email inviate con successo: 0
+2025-06-20 14:30:15,437 - reminder_cron - INFO - Errori: 0
+2025-06-20 14:30:15,437 - reminder_cron - INFO - === Controllo promemoria completato ===
+2025-06-20 14:30:54,456 - reminder_cron - INFO - === Avvio controllo promemoria ===
+2025-06-20 14:30:54,535 - reminder_service - INFO - Non è il momento di inviare promemoria
+2025-06-20 14:30:54,536 - reminder_cron - INFO - Promemoria processati: 0
+2025-06-20 14:30:54,536 - reminder_cron - INFO - Email inviate con successo: 0
+2025-06-20 14:30:54,536 - reminder_cron - INFO - Errori: 0
+2025-06-20 14:30:54,536 - reminder_cron - INFO - === Controllo promemoria completato ===

@@ -1,0 +1,16 @@
+PROMEMORIA RESTITUZIONE
+
+Ciao {{ borrower.name }} {{ borrower.surname }},
+
+Ti ricordiamo che tra 7 GIORNI (il {{ due_date }}) dovrai restituire il seguente prodotto:
+
+PRODOTTO IN PRESTITO:
+- Nome: {{ product.name }}
+- Codice: {{ product.unique_code }}
+- Quantita: {{ loan.quantity }}
+- Scadenza: {{ due_date }}
+
+Per favore, organizza la restituzione entro la data indicata.
+
+Cordiali saluti,
+Sistema Gestione Inventario

@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Sistema Promemoria</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/backend-plugin.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/backend.css') }}">
+</head>
+
+<body class="color-light">
+    <div class="wrapper">
+        {% include "./backend/sidebar.html" %}
+
+        <div class="content-page">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between">
+                                <div class="header-title">
+                                    <h4 class="card-title">📧 Sistema Promemoria</h4>
+                                </div>
+                                <div>
+                                    <button onclick="testReminders()" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-play"></i> Test Promemoria
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+
+                                <!-- Stato Generale -->
+                                <div class="row mb-4">
+                                    <div class="col-md-3">
+                                        <div class="card bg-{{ 'success' if is_enabled else 'danger' }}">
+                                            <div class="card-body text-white text-center">
+                                                <h5>Stato Sistema</h5>
+                                                <h3>{{ 'ATTIVO' if is_enabled else 'DISATTIVO' }}</h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-info">
+                                            <div class="card-body text-white text-center">
+                                                <h5>Notifiche Totali</h5>
+                                                <h3>{{ total_notifications }}</h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-warning">
+                                            <div class="card-body text-white text-center">
+                                                <h5>Ultimi 7 giorni</h5>
+                                                <h3>{{ recent_notifications }}</h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div
+                                            class="card bg-{{ 'warning' if loans_needing_reminders > 0 else 'secondary' }}">
+                                            <div class="card-body text-white text-center">
+                                                <h5>Da Processare</h5>
+                                                <h3>{{ loans_needing_reminders }}</h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Configurazione -->
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h5><i class="fas fa-cog"></i> Configurazione</h5>
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <tbody>
+                                                    <tr>
+                                                        <th>Sistema Abilitato</th>
+                                                        <td>
+                                                            <span
+                                                                class="badge badge-{{ 'success' if config.settings.enabled else 'danger' }}">
+                                                                {{ 'SÌ' if config.settings.enabled else 'NO' }}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Orario Invio</th>
+                                                        <td>{{ config.settings.send_time }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Timezone</th>
+                                                        <td>{{ config.settings.timezone }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Intervallo Controllo</th>
+                                                        <td>{{ config.settings.check_interval }} minuti</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <h5><i class="fas fa-bell"></i> Tipi di Promemoria</h5>
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Tipo</th>
+                                                        <th>Giorni Prima</th>
+                                                        <th>Stato</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for type, reminder in config.reminders.items() %}
+                                                    <tr>
+                                                        <td>{{ type.replace('_', ' ').title() }}</td>
+                                                        <td>{{ reminder.days_before }}</td>
+                                                        <td>
+                                                            <span
+                                                                class="badge badge-{{ 'success' if reminder.enabled else 'secondary' }}">
+                                                                {{ 'Attivo' if reminder.enabled else 'Disattivo' }}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Alert se ci sono promemoria da processare -->
+                                {% if loans_needing_reminders > 0 %}
+                                <div class="alert alert-warning mt-4">
+                                    <h5><i class="fas fa-exclamation-triangle"></i> Attenzione!</h5>
+                                    <p>Ci sono <strong>{{ loans_needing_reminders }}</strong> prestiti che necessitano
+                                        di promemoria.</p>
+                                    <p><small>I promemoria vengono inviati automaticamente all'orario configurato ({{
+                                            config.settings.send_time }}).</small></p>
+                                </div>
+                                {% endif %}
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/backend-bundle.min.js') }}"></script>
+    <script>
+        function testReminders() {
+            if (confirm('Eseguire il test dei promemoria? Questo invierà email reali se ci sono promemoria pendenti.')) {
+                fetch('/admin/reminders/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Test completato: ' + data.message);
+                            location.reload();
+                        } else {
+                            alert('Errore: ' + data.error);
+                        }
+                    })
+                    .catch(error => {
+                        alert('Errore nella richiesta: ' + error);
+                    });
+            }
+        }
+    </script>
+</body>
+
+</html>

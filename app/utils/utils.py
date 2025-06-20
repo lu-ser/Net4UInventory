@@ -23,13 +23,17 @@ YAHOO_PASS='fhdrznjvyessxlwy'    # not your account password
 def send_email(subject, recipient, template, sender="workstation271s@yahoo.com", **kwargs):
     email_address = sender
     email_password = YAHOO_PASS 
-    body=render_template(f'{template}.txt', **kwargs)
-    msg = MIMEMultipart()
+    body = render_template(f'{template}.txt', **kwargs)
+    
+    # FIX ENCODING - Specifica UTF-8
+    msg = MIMEMultipart('mixed')
     msg['From'] = email_address
     msg['To'] = recipient
     msg['Subject'] = subject
-
-    msg.attach(MIMEText(body, 'plain'))
+    msg.set_charset('utf-8')
+    
+    # IMPORTANTE: Aggiungi encoding UTF-8 per il body
+    msg.attach(MIMEText(body, 'plain', 'utf-8'))
 
     try:
         with smtplib.SMTP('smtp.mail.yahoo.com', 587) as server:

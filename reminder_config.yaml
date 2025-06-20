@@ -1,0 +1,40 @@
+# Configurazione promemoria scadenze prestiti
+reminders:
+  # Promemoria 7 giorni prima della scadenza
+  week_before:
+    enabled: true
+    days_before: 7
+    subject: "Promemoria: Restituzione prodotto tra 7 giorni"
+    template: "backend/reminder_week_before"
+
+  # Promemoria 1 giorno prima della scadenza
+  day_before:
+    enabled: true
+    days_before: 1
+    subject: "URGENTE: Restituzione prodotto domani"
+    template: "backend/reminder_day_before"
+
+  # Promemoria il giorno della scadenza
+  day_of:
+    enabled: true
+    days_before: 0
+    subject: "SCADENZA OGGI: Restituzione prodotto"
+    template: "backend/reminder_day_of"
+
+# Configurazione generale
+settings:
+  # Orario di invio (24h format)
+  send_time: "09:00"
+
+  # Timezone
+  timezone: "Europe/Rome"
+
+  # Intervallo di controllo in minuti (per script sempre attivo)
+  check_interval: 60
+
+  # Abilita/disabilita tutto il sistema
+  enabled: true
+
+  # Log delle notifiche
+  log_notifications: true
+  log_file: "logs/reminders.log"

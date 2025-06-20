@@ -1,0 +1,16 @@
+URGENTE - RESTITUZIONE DOMANI
+
+Ciao {{ borrower.name }} {{ borrower.surname }},
+
+ATTENZIONE: DOMANI ({{ due_date }}) devi restituire il seguente prodotto:
+
+PRODOTTO IN PRESTITO:
+- Nome: {{ product.name }}
+- Codice: {{ product.unique_code }}
+- Quantita: {{ loan.quantity }}
+- SCADENZA: DOMANI {{ due_date }}
+
+NON DIMENTICARE DI RESTITUIRE IL PRODOTTO ENTRO DOMANI!
+
+Cordiali saluti,
+Sistema Gestione Inventario

@@ -85,3 +85,19 @@ class Loan(db.Model):
     manager = db.relationship('User', foreign_keys=[manager_id], backref='managed_loans')
 
     
+
+class ReminderNotification(db.Model):
+    """Traccia le notifiche di promemoria inviate per evitare duplicati"""
+    id = db.Column(db.Integer, primary_key=True)
+    loan_id = db.Column(db.Integer, db.ForeignKey('loan.id'), nullable=False)
+    reminder_type = db.Column(db.String(50), nullable=False)  # 'week_before', 'day_before', 'day_of'
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    recipient_email = db.Column(db.String(255), nullable=False)
+    
+    # Relationships
+    loan = db.relationship('Loan', backref=db.backref('reminder_notifications', cascade='all, delete-orphan'))
+    
+    # Indice composto per evitare notifiche duplicate
+    __table_args__ = (
+        db.UniqueConstraint('loan_id', 'reminder_type', name='unique_loan_reminder'),
+    )
