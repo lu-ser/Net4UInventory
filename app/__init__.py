@@ -19,7 +19,7 @@ def create_app(config_name=None):
     if config_name == 'testing':
         app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1234@localhost:5432/Net4UInventory_test2'
     else:
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:faketrublo22@localhost:5432/Net4UInventory'
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1234@localhost:5432/Net4UInventory_test2'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = 'your-secret-key'
     app.config['SESSION_TYPE'] = 'filesystem'

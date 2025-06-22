@@ -10,6 +10,7 @@ class User(db.Model, UserMixin):
     surname = db.Column(db.String(255), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(100), nullable=False)
+    profile_image = db.Column(db.String(255), nullable=True)
     @property
     def password(self):
         raise AttributeError('password is not a readable attribute')

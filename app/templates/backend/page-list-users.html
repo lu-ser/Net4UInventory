@@ -1,90 +1,126 @@
-
 <!doctype html>
 <html lang="en">
-  <head>
+
+<head>
     <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-      <title>POS Dash | Responsive Bootstrap 4 Admin Dashboard Template</title>
-      
-      <!-- Favicon -->
-      <link rel="shortcut icon" href="../../static/images/favicon.ico" />
-      <link rel="stylesheet" href="../../static/css/backend-plugin.min.css">
-      <link rel="stylesheet" href="../../static/css/backend.css?v=1.0.0">
-      <link rel="stylesheet" href="../../static/vendor/@fortawesome/fontawesome-free/css/all.min.css">
-      <link rel="stylesheet" href="../../static/vendor/line-awesome/dist/line-awesome/css/line-awesome.min.css">
-      <link rel="stylesheet" href="../../static/vendor/remixicon/fonts/remixicon.css">  </head>
-  <body class="  ">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>POS Dash | Responsive Bootstrap 4 Admin Dashboard Template</title>
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="../../static/images/favicon.ico" />
+    <link rel="stylesheet" href="../../static/css/backend-plugin.min.css">
+    <link rel="stylesheet" href="../../static/css/backend.css?v=1.0.0">
+    <link rel="stylesheet" href="../../static/vendor/@fortawesome/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="../../static/vendor/line-awesome/dist/line-awesome/css/line-awesome.min.css">
+    <link rel="stylesheet" href="../../static/vendor/remixicon/fonts/remixicon.css">
+</head>
+
+<body class="  ">
     <!-- loader Start -->
     <div id="loading">
-          <div id="loading-center">
-          </div>
+        <div id="loading-center">
+        </div>
     </div>
     <!-- loader END -->
     <!-- Wrapper Start -->
     <div class="wrapper">
-        {% include "./backend/sidebar.html" %} 
+        {% include "./backend/sidebar.html" %}
         {%include "./backend/navbar.html" %}
 
-      <div class="content-page">
-     <div class="container-fluid">
-        <div class="row">
-            <div class="col-lg-12">
-                <div class="d-flex flex-wrap align-items-center justify-content-between mb-4">
-                    <div>
-                        <h4 class="mb-3">Users</h4>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-12">
-                <div class="table-responsive rounded mb-3">
-                    <form id="search-form" onsubmit="return false;">
-                        <div class="input-group mb-4">
-                            <input type="text" name="search" class="form-control" placeholder="Search users..." id="search-input">
-                            <div class="input-group-append">
-                                <button class="btn btn-primary" type="submit">Search</button>
+        <div class="content-page">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between mb-4">
+                            <div>
+                                <h4 class="mb-3">Users</h4>
                             </div>
                         </div>
-                    </form>
-                
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Surname</th>
-                                <th>Email</th>
-                                <th>Role</th>
-                                <!-- Add other columns as necessary -->
-                            </tr>
-                        </thead>
-                        <tbody id="users-table-body">
-                            <!-- Table rows will be inserted here by JavaScript -->
-                        </tbody>
-                    </table>
-            
-                    <nav aria-label="Page navigation">
-                        <ul class="pagination" id="pagination">
-                            <!-- Pagination links will be inserted here by JavaScript -->
-                        </ul>
-                    </nav>
-                
                     </div>
+                    <div class="col-lg-12">
+                        <div class="table-responsive rounded mb-3">
+                            <form id="search-form" onsubmit="return false;">
+                                <div class="input-group mb-4">
+                                    <input type="text" name="search" class="form-control" placeholder="Search users..."
+                                        id="search-input">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-primary" type="submit">Search</button>
+                                    </div>
+                                </div>
+                            </form>
+
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Surname</th>
+                                        <th>Email</th>
+                                        <th>Role</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-table-body">
+                                    <!-- Table rows will be inserted here by JavaScript -->
+                                </tbody>
+                            </table>
+                            <!-- User Info Modal -->
+                            <div class="modal fade" id="userInfoModal" tabindex="-1" role="dialog">
+                                <div class="modal-dialog modal-lg" role="document">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">User Information</h5>
+                                            <button type="button" class="close" data-dismiss="modal">
+                                                <span>&times;</span>
+                                            </button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="row">
+                                                <div class="col-md-4 text-center">
+                                                    <img id="modalUserImage" src="" alt="Profile"
+                                                        class="rounded-circle mb-3" width="150" height="150"
+                                                        style="object-fit: cover;">
+                                                </div>
+                                                <div class="col-md-8">
+                                                    <h4 id="modalUserName"></h4>
+                                                    <p class="text-muted" id="modalUserRole"></p>
+                                                    <hr>
+                                                    <p><strong>Email:</strong> <span id="modalUserEmail"></span></p>
+                                                    <p><strong>Total Loans:</strong> <span id="modalUserLoans"></span>
+                                                    </p>
+                                                    <p><strong>Products Owned:</strong> <span
+                                                            id="modalUserProducts"></span></p>
+                                                    <p><strong>Products Managed:</strong> <span
+                                                            id="modalUserManaged"></span></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination" id="pagination">
+                                    <!-- Pagination links will be inserted here by JavaScript -->
+                                </ul>
+                            </nav>
+
+                        </div>
+                    </div>
+
                 </div>
-            
-            </div>
-            
+
 
             </div>
-    
+
         </div>
-        </div>
-        <!-- Page end  -->
+    </div>
+    <!-- Page end  -->
     </div>
 
-      </div>
+    </div>
     </div>
     <!-- Wrapper End-->
     <footer class="iq-footer">
-            <div class="container-fluid">
+        <div class="container-fluid">
             <div class="card">
                 <div class="card-body">
                     <div class="row">
@@ -102,25 +138,41 @@
     <!-- Backend Bundle JavaScript -->
     <script src="../../static/js/backend-bundle.min.js"></script>
     <script>
-        function loadUsers(page=1, search='') {
+        function showUserInfo(id, name, surname, email, role, profileImage, totalLoans, ownedProducts, managedProducts) {
+            document.getElementById('modalUserImage').src = profileImage;
+            document.getElementById('modalUserName').textContent = name + ' ' + surname;
+            document.getElementById('modalUserRole').textContent = role;
+            document.getElementById('modalUserEmail').textContent = email;
+            document.getElementById('modalUserLoans').textContent = totalLoans;
+            document.getElementById('modalUserProducts').textContent = ownedProducts;
+            document.getElementById('modalUserManaged').textContent = managedProducts;
+
+            $('#userInfoModal').modal('show');
+        }
+        function loadUsers(page = 1, search = '') {
             $.ajax({
                 url: "{{ url_for('main.api_users') }}",
                 data: {
                     page: page,
                     search: search
                 },
-                success: function(data) {
+                success: function (data) {
                     let usersTableBody = $('#users-table-body');
                     usersTableBody.empty();
 
-                    data.users.forEach(function(user) {
+                    data.users.forEach(function (user) {
                         usersTableBody.append(
                             `<tr>
-                                <td>${user.name}</td>
-                                <td>${user.surname}</td>
-                                <td>${user.email}</td>
-                                <td>${user.role}</td>
-                            </tr>`
+                        <td>${user.name}</td>
+                        <td>${user.surname}</td>
+                        <td>${user.email}</td>
+                        <td>${user.role}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="showUserInfo(${user.id}, '${user.name}', '${user.surname}', '${user.email}', '${user.role}', '${user.profile_image}', ${user.total_loans}, ${user.owned_products}, ${user.managed_products})">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                        </td>
+                    </tr>`
                         );
                     });
 
@@ -170,10 +222,10 @@
             });
         }
 
-        $(document).ready(function() {
+        $(document).ready(function () {
             loadUsers();
 
-            $('#search-input').on('input', function() {
+            $('#search-input').on('input', function () {
                 loadUsers(1, $(this).val());
             });
         });
@@ -181,8 +233,8 @@
     <!-- Table Treeview JavaScript -->
     <script src="../../static/js/table-treeview.js"></script>
     <script>
-        $(document).ready(function() {
-            $('#search-input').on('input', function() {
+        $(document).ready(function () {
+            $('#search-input').on('input', function () {
                 $('#search-form').submit();
             });
         });
@@ -193,5 +245,6 @@
     <script async src="../../static/js/chart-custom.js"></script>
     <!-- app JavaScript -->
     <script src="../../static/js/app.js"></script>
-  </body>
+</body>
+
 </html>

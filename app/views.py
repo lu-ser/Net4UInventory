@@ -1036,11 +1036,10 @@ def api_users():
 
     if search:
         users_query = User.query.filter(
-    (User.name.ilike(f'%{search}%')) |
-    (User.surname.ilike(f'%{search}%')) |
-    (User.role.ilike(f'%{search}%'))
-)
-
+            (User.name.ilike(f'%{search}%')) |
+            (User.surname.ilike(f'%{search}%')) |
+            (User.role.ilike(f'%{search}%'))
+        )
     else:
         users_query = User.query
 
@@ -1049,11 +1048,21 @@ def api_users():
 
     users_list = []
     for user in users:
+        # Calcola statistiche per ogni utente
+        total_loans = Loan.query.filter_by(borrower_id=user.id).count()
+        owned_products = Product.query.filter_by(owner_id=user.id).count()
+        managed_products = ProductManager.query.filter_by(user_id=user.id).count()
+        
         users_list.append({
+            'id': user.id,
             'name': user.name,
             'surname': user.surname,
             'email': user.email,
-            'role':user.role
+            'role': user.role,
+            'profile_image': user.profile_image or '/static/images/Blue_-_Squared_-_Delete_icon_(Wikiproject_icons).svg.png',
+            'total_loans': total_loans,
+            'owned_products': owned_products,
+            'managed_products': managed_products
         })
 
     return jsonify({
@@ -1072,8 +1081,21 @@ def api_users():
 @main_blueprint.route('/editProfile')
 @login_required
 def userprof():
+    # Calcola le statistiche dell'utente
+    total_loans = Loan.query.filter_by(borrower_id=current_user.id).count()
+    owned_products = Product.query.filter_by(owner_id=current_user.id).count()
+    managed_products = ProductManager.query.filter_by(user_id=current_user.id).count()
+    
+    user_stats = {
+        'total_loans': total_loans,
+        'owned_products': owned_products,
+        'managed_products': managed_products
+    }
+    
     messages = get_flashed_messages(with_categories=True)
-    return render_template('/backend/user-profile-edit.html',messages=messages)
+    return render_template('/backend/user-profile-edit.html', 
+                         messages=messages, 
+                         user_stats=user_stats)
 
 @main_blueprint.route('/change_password_form', methods=['GET', 'POST'])
 @login_required
@@ -1559,3 +1581,164 @@ def reminder_config():
     
     reminder_service = ReminderService()
     return render_template('backend/reminder_config.html', config=reminder_service.config)
+
+
+@main_blueprint.route('/upload_avatar', methods=['POST'])
+@login_required
+def upload_avatar():
+    try:
+        if 'avatar' not in request.files:
+            return jsonify({'status': 'error', 'message': 'No file uploaded'}), 400
+        
+        file = request.files['avatar']
+        if file.filename == '':
+            return jsonify({'status': 'error', 'message': 'No file selected'}), 400
+        
+        # Validazione del file
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+        if not ('.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
+            return jsonify({'status': 'error', 'message': 'Invalid file type'}), 400
+        
+        # Crea un nome file sicuro
+        filename = secure_filename(f"user_{current_user.id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{file.filename.rsplit('.', 1)[1].lower()}")
+        
+        # Crea la cartella se non esiste
+        upload_path = os.path.join(current_app.root_path, 'static', 'uploads', 'avatars')
+        if not os.path.exists(upload_path):
+            os.makedirs(upload_path)
+        
+        # Salva il file
+        file_path = os.path.join(upload_path, filename)
+        file.save(file_path)
+        
+        # Rimuovi l'immagine precedente se esiste
+        if current_user.profile_image and 'uploads' in current_user.profile_image:
+            old_path = os.path.join(current_app.root_path, 'static', current_user.profile_image.lstrip('/static/'))
+            if os.path.exists(old_path):
+                os.remove(old_path)
+        
+        # Aggiorna il database
+        current_user.profile_image = f"/static/uploads/avatars/{filename}"
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success', 
+            'message': 'Profile picture updated successfully',
+            'avatar_url': current_user.profile_image
+        })
+        
+    except Exception as e:
+        print(f"Error uploading avatar: {str(e)}")
+        return jsonify({'status': 'error', 'message': 'Error uploading image'}), 500
+
+@main_blueprint.route('/update_profile', methods=['POST'])
+@login_required
+def update_profile():
+    try:
+        role = request.form.get('role')
+        
+        # Validazione del ruolo
+        allowed_roles = {'Professor', 'RTD', 'Researcher', 'PhDStudent', 'Scholar'}
+        if role not in allowed_roles:
+            return jsonify({'status': 'error', 'message': 'Invalid role selected'}), 400
+        
+        # Aggiorna il ruolo
+        current_user.role = role
+        db.session.commit()
+        
+        return jsonify({'status': 'success', 'message': 'Profile updated successfully'})
+        
+    except Exception as e:
+        print(f"Error updating profile: {str(e)}")
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': 'An error occurred while updating profile'}), 500
+
+
+@main_blueprint.route('/change_password', methods=['POST'])
+@login_required
+def change_password():
+    try:
+        current_password = request.form.get('currentPassword')
+        new_password = request.form.get('newPassword')
+        confirm_password = request.form.get('confirmPassword')
+        
+        # Validazioni
+        if not current_password or not new_password or not confirm_password:
+            return jsonify({'status': 'error', 'message': 'All fields are required'}), 400
+        
+        if new_password != confirm_password:
+            return jsonify({'status': 'error', 'message': 'New passwords do not match'}), 400
+        
+        if len(new_password) < 8:
+            return jsonify({'status': 'error', 'message': 'Password must be at least 8 characters long'}), 400
+        
+        # Verifica la password attuale
+        if not check_password_hash(current_user.password_hash, current_password):
+            return jsonify({'status': 'error', 'message': 'Current password is incorrect'}), 400
+        
+        # Aggiorna la password
+        current_user.password_hash = generate_password_hash(new_password)
+        db.session.commit()
+        
+        return jsonify({'status': 'success', 'message': 'Password changed successfully'})
+        
+    except Exception as e:
+        print(f"Error changing password: {str(e)}")
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': 'An error occurred while changing password'}), 500
+
+
+
+@main_blueprint.route('/get_user_activity')
+@login_required
+def get_user_activity():
+    try:
+        activities = []
+        
+        # Prestiti recenti dell'utente
+        recent_loans = Loan.query.filter_by(borrower_id=current_user.id)\
+                                .order_by(Loan.start_date.desc())\
+                                .limit(10).all()
+        
+        for loan in recent_loans:
+            time_diff = datetime.now() - loan.start_date
+            if time_diff.days == 0:
+                time_str = f"{max(1, time_diff.seconds // 3600)} hours ago"
+            elif time_diff.days == 1:
+                time_str = "1 day ago"
+            else:
+                time_str = f"{time_diff.days} days ago"
+            
+            activities.append({
+                'icon': 'fas fa-handshake text-info',
+                'title': 'Loan Request',
+                'description': f'Requested {loan.product.name}',
+                'time': time_str,
+                'date': loan.start_date
+            })
+        
+        # Ordina per data
+        activities.sort(key=lambda x: x['date'], reverse=True)
+        
+        # Genera HTML
+        html = ""
+        for activity in activities[:5]:  # Solo i primi 5
+            html += f"""
+            <div class="d-flex mb-3">
+                <i class="{activity['icon']} mt-1 mr-3"></i>
+                <div>
+                    <h6 class="mb-1">{activity['title']}</h6>
+                    <p class="text-muted mb-0">{activity['description']}</p>
+                    <small class="text-muted">{activity['time']}</small>
+                </div>
+            </div>
+            """
+        
+        if not html:
+            html = '<p class="text-muted text-center">No recent activity found</p>'
+        
+        return jsonify({'status': 'success', 'html': html})
+        
+    except Exception as e:
+        print(f"Error getting activity: {str(e)}")
+        return jsonify({'status': 'error', 'message': 'Failed to load activity'}), 500
