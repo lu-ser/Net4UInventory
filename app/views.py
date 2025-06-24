@@ -1917,7 +1917,7 @@ def process_multiple_products():
 @login_required
 def update_product(encrypted_id):
     try:
-        product_id = auth_s.loads(encrypted_id)
+        product_id = current_app.auth_s.loads(encrypted_id)
         product = Product.query.get_or_404(product_id)
         
         # Verifica permessi
@@ -1950,16 +1950,18 @@ def update_product(encrypted_id):
                     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
                     filename = secure_filename(f"product_{current_user.id}_{timestamp}.{file.filename.rsplit('.', 1)[1].lower()}")
                     
+                    # Crea cartella se non esiste
                     upload_path = os.path.join(current_app.root_path, 'static', 'uploads', 'products')
                     if not os.path.exists(upload_path):
                         os.makedirs(upload_path)
                     
+                    # Salva file
                     file_path = os.path.join(upload_path, filename)
                     file.save(file_path)
                     product.image_path = f"/static/uploads/products/{filename}"
                 else:
                     flash('Tipo di file non supportato. Usa PNG, JPG, GIF o WebP.', 'error')
-                    return redirect(url_for('main.product_detail', encrypted_id=encrypted_id))
+                    return redirect(url_for('main.view_product', encrypted_id=encrypted_id))
         
         # Gestione categorie (se incluso nel form)
         if 'category_ids' in request.form:
@@ -1967,6 +1969,18 @@ def update_product(encrypted_id):
             if category_ids:
                 categories = Category.query.filter(Category.id.in_(category_ids)).all()
                 product.categories = categories
+        
+        # Gestione progetti (se incluso nel form)
+        if 'project_id' in request.form:
+            project_id = request.form.get('project_id')
+            if project_id:
+                product.project_id = int(project_id)
+        
+        # Gestione location (se incluso nel form)
+        if 'location_id' in request.form:
+            location_id = request.form.get('location_id')
+            if location_id:
+                product.location_id = int(location_id)
         
         # Gestione managers (se incluso nel form)
         if 'manager_ids' in request.form:
@@ -1992,14 +2006,14 @@ def update_product(encrypted_id):
         db.session.rollback()
         flash(f'Errore durante l\'aggiornamento: {str(e)}', 'error')
     
-    return redirect(url_for('main.product_detail', encrypted_id=encrypted_id))
+    return redirect(url_for('main.view_product', encrypted_id=encrypted_id))
 
 # Route per rimuovere immagine prodotto
 @main_blueprint.route('/remove_product_image/<encrypted_id>', methods=['POST'])
 @login_required
 def remove_product_image(encrypted_id):
     try:
-        product_id = auth_s.loads(encrypted_id)
+        product_id = current_app.auth_s.loads(encrypted_id)
         product = Product.query.get_or_404(product_id)
         
         # Verifica permessi
@@ -2023,3 +2037,155 @@ def remove_product_image(encrypted_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'status': 'error', 'message': str(e)}), 500
+    
+
+
+@main_blueprint.route('/upload_product_image/<encrypted_id>', methods=['POST'])
+@login_required
+def upload_product_image_update(encrypted_id):
+    """Upload e aggiorna immagine per prodotto esistente"""
+    print("=" * 50)
+    print("INIZIO UPLOAD IMMAGINE PRODOTTO")
+    print(f"encrypted_id ricevuto: {encrypted_id}")
+    print("=" * 50)
+    
+    try:
+        print("=== STEP 1: Decodifica ID ===")
+        product_id = current_app.auth_s.loads(encrypted_id)
+        print(f"product_id decodificato: {product_id}")
+        
+        print("=== STEP 2: Ricerca prodotto nel DB ===")
+        product = Product.query.get_or_404(product_id)
+        print(f"Prodotto trovato: {product.name} (ID: {product.id})")
+        print(f"Image path attuale: {product.image_path}")
+        
+        print("=== STEP 3: Verifica permessi ===")
+        print(f"current_user.id: {current_user.id}")
+        print(f"product.owner_id: {product.owner_id}")
+        # Verifica permessi
+        if not (product.owner_id == current_user.id or 
+                current_user in product.managers):
+            print("=== ERRORE: Permessi insufficienti ===")
+            return jsonify({'status': 'error', 'message': 'Permessi insufficienti'}), 403
+        print("=== Permessi OK ===")
+        
+        print("=== STEP 4: Verifica files ricevuti ===")
+        print(f"request.files.keys(): {list(request.files.keys())}")
+        if 'image' not in request.files:
+            print("=== ERRORE: Nessun file 'image' trovato ===")
+            return jsonify({'status': 'error', 'message': 'No image file'}), 400
+        
+        file = request.files['image']
+        print(f"File ricevuto: {file.filename}")
+        print(f"File size: {file.content_length if hasattr(file, 'content_length') else 'Unknown'}")
+        
+        if file.filename == '':
+            print("=== ERRORE: Nome file vuoto ===")
+            return jsonify({'status': 'error', 'message': 'No file selected'}), 400
+        
+        print("=== STEP 5: Validazione tipo file ===")
+        # Verifica il tipo di file
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+        if not (file and '.' in file.filename and 
+                file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
+            print(f"=== ERRORE: Tipo file non valido: {file.filename} ===")
+            return jsonify({'status': 'error', 'message': 'Invalid file type'}), 400
+        print("=== Tipo file OK ===")
+        
+        print("=== STEP 6: Preparazione salvataggio ===")
+        # Salva la vecchia immagine per rimuoverla dopo
+        old_image_path = product.image_path
+        print(f"Vecchia immagine: {old_image_path}")
+        
+        # Crea un nome file sicuro e unico
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+        filename = secure_filename(f"product_{current_user.id}_{timestamp}.{file.filename.rsplit('.', 1)[1].lower()}")
+        print(f"Nuovo filename: {filename}")
+        
+        # Crea la cartella se non esiste
+        upload_path = os.path.join(current_app.root_path, 'static', 'uploads', 'products')
+        print(f"Upload path: {upload_path}")
+        if not os.path.exists(upload_path):
+            print("=== Creazione cartella upload ===")
+            os.makedirs(upload_path)
+        else:
+            print("=== Cartella upload già esistente ===")
+        
+        print("=== STEP 7: Salvataggio file fisico ===")
+        # Salva il file
+        file_path = os.path.join(upload_path, filename)
+        print(f"File path completo: {file_path}")
+        file.save(file_path)
+        print("=== File salvato con successo ===")
+        
+        print("=== STEP 8: Aggiornamento database ===")
+        # Aggiorna il database
+        new_image_path = f"/static/uploads/products/{filename}"
+        print(f"Nuovo image_path per DB: {new_image_path}")
+        print(f"PRIMA - product.image_path: {product.image_path}")
+        
+        product.image_path = new_image_path
+        print(f"DOPO assegnazione - product.image_path: {product.image_path}")
+        
+        print("=== Esecuzione commit ===")
+        db.session.commit()
+        print("=== COMMIT ESEGUITO CON SUCCESSO ===")
+        
+        # Verifica che sia stato salvato
+        print("=== STEP 9: Verifica salvataggio ===")
+        updated_product = Product.query.get(product_id)
+        print(f"Prodotto ricaricato dal DB - image_path: {updated_product.image_path}")
+        
+        print("=== STEP 10: Rimozione vecchia immagine ===")
+        # Rimuovi la vecchia immagine solo dopo il commit riuscito
+        if old_image_path and 'uploads' in old_image_path:
+            old_path = os.path.join(current_app.root_path, 'static', 
+                                  old_image_path.lstrip('/static/'))
+            print(f"Tentativo rimozione vecchia immagine: {old_path}")
+            if os.path.exists(old_path):
+                try:
+                    os.remove(old_path)
+                    print("=== Vecchia immagine rimossa ===")
+                except OSError as e:
+                    print(f"=== Errore rimozione vecchia immagine: {e} ===")
+            else:
+                print("=== Vecchia immagine non trovata sul disco ===")
+        else:
+            print("=== Nessuna vecchia immagine da rimuovere ===")
+        
+        print("=== STEP 11: Risposta finale ===")
+        response_data = {
+            'status': 'success',
+            'message': 'Image uploaded successfully',
+            'image_path': new_image_path
+        }
+        print(f"Risposta: {response_data}")
+        print("=" * 50)
+        print("FINE UPLOAD IMMAGINE - SUCCESSO")
+        print("=" * 50)
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        print("=" * 50)
+        print(f"ERRORE DURANTE UPLOAD: {str(e)}")
+        print(f"Tipo errore: {type(e).__name__}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        print("=" * 50)
+        
+        db.session.rollback()
+        print("=== ROLLBACK ESEGUITO ===")
+        
+        # Se è stato salvato un nuovo file ma c'è stato un errore nel DB, rimuovilo
+        if 'new_image_path' in locals():
+            try:
+                new_file_path = os.path.join(current_app.root_path, 'static', 
+                                           new_image_path.lstrip('/static/'))
+                if os.path.exists(new_file_path):
+                    os.remove(new_file_path)
+                    print("=== File nuovo rimosso dopo errore ===")
+            except OSError:
+                print("=== Errore nella rimozione file nuovo ===")
+        
+        return jsonify({'status': 'error', 'message': f'Error uploading image: {str(e)}'}), 500

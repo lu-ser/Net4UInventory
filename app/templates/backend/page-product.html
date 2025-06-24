@@ -1767,7 +1767,8 @@
                     const formData = new FormData();
                     formData.append('image', file);
 
-                    fetch('/upload_product_image', {
+                    const encryptedId = '{{ encrypted_product_id }}';
+                    fetch(`/upload_product_image/${encryptedId}`, {
                         method: 'POST',
                         body: formData
                     })
