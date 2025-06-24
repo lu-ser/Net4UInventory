@@ -2189,3 +2189,62 @@ def upload_product_image_update(encrypted_id):
                 print("=== Errore nella rimozione file nuovo ===")
         
         return jsonify({'status': 'error', 'message': f'Error uploading image: {str(e)}'}), 500
+    
+
+@main_blueprint.route('/toggle_wishlist/<int:product_id>', methods=['POST'])
+@login_required
+def toggle_wishlist(product_id):
+    product = Product.query.get_or_404(product_id)
+    
+    try:
+        if product in current_user.wishlist:
+            current_user.wishlist.remove(product)
+            action = 'removed'
+            message = f'Rimosso "{product.name}" dalla wishlist'
+            icon = '💔'
+        else:
+            current_user.wishlist.append(product)
+            action = 'added'
+            message = f'Aggiunto "{product.name}" alla wishlist'
+            icon = '❤️'
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'action': action,
+            'message': message,
+            'icon': icon,
+            'wishlist_count': len(current_user.wishlist)
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': 'Errore durante l\'operazione'
+        }), 500
+
+@main_blueprint.route('/my_wishlist')
+@login_required
+def my_wishlist():
+    """Pagina della wishlist dell'utente"""
+    wishlist_products = current_user.wishlist
+    all_users = User.query.all()
+    
+    # Cripta gli ID dei prodotti per i link
+    for product in wishlist_products:
+        product.encrypted_id = current_app.auth_s.dumps(product.id)
+    
+    messages = get_flashed_messages(with_categories=True)
+    return render_template('backend/page-wishlist.html', 
+                         products=wishlist_products, 
+                         all_users=all_users,
+                         messages=messages,
+                         page_title="La Mia Wishlist")
+
+@main_blueprint.route('/wishlist_count')
+@login_required
+def wishlist_count():
+    """API per ottenere il conteggio wishlist (per badge nel menu)"""
+    return jsonify({'count': len(current_user.wishlist)})

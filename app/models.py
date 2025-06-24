@@ -3,6 +3,12 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from .extensions import db
 
+
+wishlist_association = db.Table('user_wishlist',
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
+    db.Column('product_id', db.Integer, db.ForeignKey('product.id'), primary_key=True)
+)
+
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(255), unique=True, nullable=False)
@@ -11,6 +17,8 @@ class User(db.Model, UserMixin):
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(100), nullable=False)
     profile_image = db.Column(db.String(255), nullable=True)
+    wishlist = db.relationship('Product', secondary=wishlist_association, backref='wishlisted_by')
+
     @property
     def password(self):
         raise AttributeError('password is not a readable attribute')

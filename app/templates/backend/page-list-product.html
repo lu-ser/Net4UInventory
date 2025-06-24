@@ -531,7 +531,12 @@
                                                             class="btn btn-outline-primary btn-sm">
                                                             <i class="fas fa-eye"></i> Visualizza
                                                         </a>
-
+                                                        <button class="btn btn-outline-danger"
+                                                            onclick="toggleWishlist({{ product.id }}, this)"
+                                                            title="{% if product in current_user.wishlist %}Rimuovi dalla{% else %}Aggiungi alla{% endif %} wishlist">
+                                                            <i
+                                                                class="{% if product in current_user.wishlist %}fas fa-heart text-danger{% else %}far fa-heart{% endif %}"></i>
+                                                        </button>
                                                         {% if product.owner_id == current_user.id or current_user in
                                                         product.managers %}
                                                         <a href="{{ url_for('main.view_product', encrypted_id=auth_s.dumps(product.id)) }}#edit"
@@ -1033,6 +1038,7 @@
                 clearAllFilters();
             }
         </script>
+        <script src="../../static/js/wishlist.js"></script>
 
         <!-- Backend Bundle JavaScript -->
         <script src="../../static/js/backend-bundle.min.js"></script>
