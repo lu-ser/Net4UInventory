@@ -6,3 +6,4 @@ __pycache__/
 # format .pyc
 *.pyc
 flask_session/
+app/static/uploads/

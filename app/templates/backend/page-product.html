@@ -581,6 +581,134 @@
                 margin-left: 0;
             }
         }
+
+        product-image-section {
+            background: white;
+            margin: 2rem auto;
+            max-width: 1400px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .product-image-container {
+            position: relative;
+            height: 400px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+
+        .product-main-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+            cursor: zoom-in;
+        }
+
+        .product-main-image:hover {
+            transform: scale(1.02);
+        }
+
+        .image-overlay {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .product-image-container:hover .image-overlay {
+            opacity: 1;
+        }
+
+        .no-image-placeholder {
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+
+        .placeholder-content {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        /* Modal Styles */
+        .modal-content {
+            border-radius: 12px;
+            border: none;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #4c5bd4 100%);
+            color: white;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .modal-header .close {
+            color: white;
+            opacity: 0.8;
+        }
+
+        .modal-header .close:hover {
+            opacity: 1;
+        }
+
+        /* Custom File Input */
+        .custom-file-label::after {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .product-image-section {
+                margin: 1rem;
+                border-radius: 8px;
+            }
+
+            .product-image-container {
+                height: 250px;
+            }
+
+            .no-image-placeholder {
+                height: 200px;
+            }
+
+            .placeholder-content {
+                padding: 1rem;
+            }
+
+            .modal-dialog {
+                margin: 1rem;
+            }
+        }
+
+        /* Loading Animation */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
 
@@ -616,302 +744,412 @@
                         <div class="stat-label">Manager</div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Main Content Grid -->
-            <div class="content-grid">
-                <!-- Main Content -->
-                <div class="main-content">
-                    <!-- Product Edit Form (if user is owner/manager) -->
-                    {% if is_owner_or_manager %}
-                    <div class="card">
-                        <div class="card-header">
-                            <h4 class="card-title">
-                                <i class="fas fa-edit"></i> Modifica Prodotto
-                            </h4>
+                <div class="product-image-section">
+                    {% if product.image_path %}
+                    <div class="product-image-container">
+                        <img src="{{ product.image_path }}" alt="{{ product.name }}" class="product-main-image"
+                            id="productMainImage">
+                        <div class="image-overlay">
+                            <button class="btn btn-light btn-sm" onclick="openImageModal()">
+                                <i class="fas fa-expand"></i> Zoom
+                            </button>
                         </div>
-                        <div class="card-body">
-                            <form method="post"
-                                action="{{ url_for('main.update_product', encrypted_id=auth_s.dumps(product.id)) }}"
-                                enctype="multipart/form-data">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="form-label">
-                                                <i class="fas fa-tag"></i> Nome Prodotto
-                                            </label>
-                                            <input type="text" name="name" class="form-control"
-                                                value="{{ product.name }}" required>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="form-label">
-                                                <i class="fas fa-cubes"></i> Quantità
-                                            </label>
-                                            <input type="number" name="quantity" class="form-control"
-                                                value="{{ product.quantity }}" required min="1">
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <i class="fas fa-align-left"></i> Descrizione
-                                    </label>
-                                    <textarea name="description" class="form-control"
-                                        rows="3">{{ product.description }}</textarea>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="form-label">
-                                                <i class="fas fa-project-diagram"></i> Progetto
-                                            </label>
-                                            <select name="project_id" class="form-control select2" required>
-                                                {% for project in all_projects %}
-                                                <option value="{{ project.id }}" {% if project.id==selected_project
-                                                    %}selected{% endif %}>
-                                                    {{ project.name }}
-                                                </option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="form-label">
-                                                <i class="fas fa-map-marker-alt"></i> Posizione
-                                            </label>
-                                            <select name="location_id" class="form-control select2" required>
-                                                {% for location in all_locations %}
-                                                <option value="{{ location.id }}" {% if location.id==selected_location
-                                                    %}selected{% endif %}>
-                                                    {{ location.pavilion }} - {{ location.room or 'N/A' }} - {{
-                                                    location.cabinet or 'N/A' }}
-                                                </option>
-                                                {% endfor %}
-                                            </select>
-                                            <button type="button" class="btn btn-outline-primary btn-sm mt-2"
-                                                data-toggle="modal" data-target="#newLocationModal">
-                                                <i class="fas fa-plus"></i> Nuova Posizione
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <i class="fas fa-tags"></i> Categorie
-                                    </label>
-                                    <select name="category_ids[]" class="form-control select2-multiple" multiple>
-                                        {% for category in all_categories %}
-                                        <option value="{{ category.id }}" {% if category.id in selected_categories
-                                            %}selected{% endif %}>
-                                            {{ category.name }}
-                                        </option>
-                                        {% endfor %}
-                                    </select>
-                                    <button type="button" class="btn btn-outline-primary btn-sm mt-2"
-                                        data-toggle="modal" data-target="#newCategoryModal">
-                                        <i class="fas fa-plus"></i> Nuova Categoria
-                                    </button>
-                                </div>
-
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <i class="fas fa-users"></i> Manager
-                                    </label>
-                                    <select name="managers[]" multiple class="form-control select2-multiple">
-                                        {% for user in all_users %}
-                                        <option value="{{ user.id }}" {% if user.id in selected_managers %} selected {%
-                                            endif %} {% if user.id==product.owner_id %} disabled {% endif %}>
-                                            {{ user.name }} {{ user.surname }}
-                                        </option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-
-                                <div class="text-right">
-                                    <button type="submit" class="btn btn-primary btn-lg">
-                                        <i class="fas fa-save"></i> Salva Modifiche
-                                    </button>
-                                </div>
-                            </form>
+                    </div>
+                    {% else %}
+                    <div class="no-image-placeholder">
+                        <div class="placeholder-content">
+                            <i class="fas fa-image fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Nessuna immagine disponibile</h5>
+                            <p class="text-muted">Questo prodotto non ha un'immagine associata</p>
+                            {% if is_owner_or_manager %}
+                            <button class="btn btn-outline-primary btn-sm" data-toggle="modal"
+                                data-target="#uploadImageModal">
+                                <i class="fas fa-plus"></i> Aggiungi Immagine
+                            </button>
+                            {% endif %}
                         </div>
                     </div>
                     {% endif %}
 
-                    <!-- Booking Calendar -->
-                    <div class="booking-section">
-                        <div class="booking-header">
-                            <h2>
-                                <i class="fas fa-calendar-alt"></i>
-                                {% if is_owner_or_manager %}
-                                Gestisci Disponibilità
-                                {% else %}
-                                Prenota Prodotto
-                                {% endif %}
-                            </h2>
-                            <p>Seleziona le date per il prestito usando il calendario o i campi sottostanti</p>
-                        </div>
-
-                        <div class="booking-content">
-                            <div class="calendar-container">
-                                <div id="calendar"></div>
+                    <!-- Modal per visualizzare immagine ingrandita -->
+                    {% if product.image_path %}
+                    <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel"
+                        aria-hidden="true">
+                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="imageModalLabel">{{ product.name }}</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body text-center">
+                                    <img src="{{ product.image_path }}" alt="{{ product.name }}" class="img-fluid">
+                                </div>
+                                <div class="modal-footer">
+                                    {% if is_owner_or_manager %}
+                                    <button type="button" class="btn btn-danger" onclick="removeProductImage()">
+                                        <i class="fas fa-trash"></i> Rimuovi Immagine
+                                    </button>
+                                    <button type="button" class="btn btn-primary" data-toggle="modal"
+                                        data-target="#uploadImageModal" data-dismiss="modal">
+                                        <i class="fas fa-edit"></i> Cambia Immagine
+                                    </button>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Chiudi</button>
+                                </div>
                             </div>
+                        </div>
+                    </div>
+                    {% endif %}
 
-                            <div class="booking-sidebar">
-                                <div class="booking-form">
-                                    <h5><i class="fas fa-cog"></i> Configurazione</h5>
+                    <!-- Modal per upload/cambio immagine -->
+                    {% if is_owner_or_manager %}
+                    <div class="modal fade" id="uploadImageModal" tabindex="-1" aria-labelledby="uploadImageModalLabel"
+                        aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="uploadImageModalLabel">
+                                        {% if product.image_path %}Cambia{% else %}Aggiungi{% endif %} Immagine Prodotto
+                                    </h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <form id="uploadImageForm" enctype="multipart/form-data">
+                                    <div class="modal-body">
+                                        <div class="form-group">
+                                            <label for="productImageInput">Seleziona una nuova immagine:</label>
+                                            <div class="custom-file">
+                                                <input type="file" class="custom-file-input" id="productImageInput"
+                                                    accept="image/*" required>
+                                                <label class="custom-file-label" for="productImageInput">Scegli
+                                                    file...</label>
+                                            </div>
+                                            <small class="text-muted">Formati supportati: PNG, JPG, GIF, WebP (max
+                                                5MB)</small>
+                                        </div>
 
+                                        <!-- Preview dell'immagine -->
+                                        <div id="imagePreview" style="display: none;">
+                                            <label>Anteprima:</label>
+                                            <div class="text-center">
+                                                <img id="previewImg" src="" alt="Preview" class="img-thumbnail"
+                                                    style="max-width: 300px; max-height: 200px;">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary"
+                                            data-dismiss="modal">Annulla</button>
+                                        <button type="submit" class="btn btn-primary" id="uploadBtn">
+                                            <i class="fas fa-upload"></i> {% if product.image_path %}Cambia{% else
+                                            %}Carica{% endif %} Immagine
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="content-grid">
+            <!-- Main Content -->
+            <div class="main-content">
+                <!-- Product Edit Form (if user is owner/manager) -->
+                {% if is_owner_or_manager %}
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">
+                            <i class="fas fa-edit"></i> Modifica Prodotto
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post"
+                            action="{{ url_for('main.update_product', encrypted_id=auth_s.dumps(product.id)) }}"
+                            enctype="multipart/form-data">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <i class="fas fa-tag"></i> Nome Prodotto
+                                        </label>
+                                        <input type="text" name="name" class="form-control" value="{{ product.name }}"
+                                            required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
                                     <div class="form-group">
                                         <label class="form-label">
                                             <i class="fas fa-cubes"></i> Quantità
                                         </label>
-                                        <input type="number" id="quantity" class="form-control" min="1"
-                                            max="{{ product.quantity }}" value="1">
-                                        <input type="hidden" id="product-id" value="{{ encrypted_product_id }}">
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label class="form-label">
-                                            <i class="fas fa-calendar-day"></i> Data Inizio
-                                        </label>
-                                        <input type="date" id="startDate" class="form-control">
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label class="form-label">
-                                            <i class="fas fa-calendar-day"></i> Data Fine
-                                        </label>
-                                        <input type="date" id="endDate" class="form-control">
-                                    </div>
-                                </div>
-
-                                <div class="booking-form">
-                                    <h5><i class="fas fa-info-circle"></i> Stato Selezione</h5>
-                                    <div id="booking-status" class="booking-status status-empty">
-                                        <i class="fas fa-hand-pointer"></i> Seleziona le date per iniziare
-                                    </div>
-
-                                    <button id="clear-selection"
-                                        class="btn btn-outline-secondary btn-sm btn-block mb-3">
-                                        <i class="fas fa-eraser"></i> Pulisci Selezione
-                                    </button>
-
-                                    <button id="confirm-booking" class="btn btn-success btn-block" disabled>
-                                        <i class="fas fa-check"></i> Conferma Prenotazione
-                                    </button>
-                                </div>
-
-                                <div class="legend">
-                                    <h6><i class="fas fa-palette"></i> Legenda</h6>
-                                    <div class="legend-item">
-                                        <div class="legend-color available-color"></div>
-                                        <span>Disponibile</span>
-                                    </div>
-                                    <div class="legend-item">
-                                        <div class="legend-color unavailable-color"></div>
-                                        <span>Non Disponibile</span>
-                                    </div>
-                                    <div class="legend-item">
-                                        <div class="legend-color selected-color"></div>
-                                        <span>Periodo Selezionato</span>
-                                    </div>
-                                    <div class="legend-item">
-                                        <div class="legend-color today-color"></div>
-                                        <span>Oggi</span>
+                                        <input type="number" name="quantity" class="form-control"
+                                            value="{{ product.quantity }}" required min="1">
                                     </div>
                                 </div>
                             </div>
-                        </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fas fa-align-left"></i> Descrizione
+                                </label>
+                                <textarea name="description" class="form-control"
+                                    rows="3">{{ product.description }}</textarea>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <i class="fas fa-project-diagram"></i> Progetto
+                                        </label>
+                                        <select name="project_id" class="form-control select2" required>
+                                            {% for project in all_projects %}
+                                            <option value="{{ project.id }}" {% if project.id==selected_project
+                                                %}selected{% endif %}>
+                                                {{ project.name }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <i class="fas fa-map-marker-alt"></i> Posizione
+                                        </label>
+                                        <select name="location_id" class="form-control select2" required>
+                                            {% for location in all_locations %}
+                                            <option value="{{ location.id }}" {% if location.id==selected_location
+                                                %}selected{% endif %}>
+                                                {{ location.pavilion }} - {{ location.room or 'N/A' }} - {{
+                                                location.cabinet or 'N/A' }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                        <button type="button" class="btn btn-outline-primary btn-sm mt-2"
+                                            data-toggle="modal" data-target="#newLocationModal">
+                                            <i class="fas fa-plus"></i> Nuova Posizione
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fas fa-tags"></i> Categorie
+                                </label>
+                                <select name="category_ids[]" class="form-control select2-multiple" multiple>
+                                    {% for category in all_categories %}
+                                    <option value="{{ category.id }}" {% if category.id in selected_categories
+                                        %}selected{% endif %}>
+                                        {{ category.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <button type="button" class="btn btn-outline-primary btn-sm mt-2" data-toggle="modal"
+                                    data-target="#newCategoryModal">
+                                    <i class="fas fa-plus"></i> Nuova Categoria
+                                </button>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fas fa-users"></i> Manager
+                                </label>
+                                <select name="managers[]" multiple class="form-control select2-multiple">
+                                    {% for user in all_users %}
+                                    <option value="{{ user.id }}" {% if user.id in selected_managers %} selected {%
+                                        endif %} {% if user.id==product.owner_id %} disabled {% endif %}>
+                                        {{ user.name }} {{ user.surname }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="text-right">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-save"></i> Salva Modifiche
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
+                {% endif %}
 
-                <!-- Sidebar -->
-                <div class="sidebar">
-                    <!-- Product Info -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title">
-                                <i class="fas fa-info-circle"></i> Informazioni Prodotto
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <strong><i class="fas fa-align-left"></i> Descrizione:</strong>
-                                <p class="mt-2">{{ product.description or 'Nessuna descrizione disponibile' }}</p>
-                            </div>
-
-                            <div class="mb-3">
-                                <strong><i class="fas fa-map-marker-alt"></i> Posizione:</strong>
-                                <p class="mt-1">
-                                    {{ product.location.pavilion }}
-                                    {% if product.location.room %} - Stanza: {{ product.location.room }}{% endif %}
-                                    {% if product.location.cabinet %} - Armadio: {{ product.location.cabinet }}{% endif
-                                    %}
-                                </p>
-                            </div>
-
-                            <div class="mb-3">
-                                <strong><i class="fas fa-project-diagram"></i> Progetto:</strong>
-                                <p class="mt-1">{{ product.project.name }}</p>
-                            </div>
-
-                            <div class="mb-3">
-                                <strong><i class="fas fa-tags"></i> Categorie:</strong>
-                                <div class="category-tags">
-                                    {% for category in product.categories %}
-                                    <span class="category-tag">{{ category.name }}</span>
-                                    {% endfor %}
-                                </div>
-                            </div>
-
-                            <div>
-                                <strong><i class="fas fa-users"></i> Manager:</strong>
-                                <div class="manager-tags">
-                                    {% for manager in product.managers %}
-                                    <span class="manager-tag"
-                                        title="{{ manager.name }} {{ manager.surname }} ({{ manager.email }})">
-                                        {{ manager.name }} {{ manager.surname }}
-                                    </span>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
+                <!-- Booking Calendar -->
+                <div class="booking-section">
+                    <div class="booking-header">
+                        <h2>
+                            <i class="fas fa-calendar-alt"></i>
+                            {% if is_owner_or_manager %}
+                            Gestisci Disponibilità
+                            {% else %}
+                            Prenota Prodotto
+                            {% endif %}
+                        </h2>
+                        <p>Seleziona le date per il prestito usando il calendario o i campi sottostanti</p>
                     </div>
 
-                    <!-- Quick Actions -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title">
-                                <i class="fas fa-bolt"></i> Azioni Rapide
-                            </h5>
+                    <div class="booking-content">
+                        <div class="calendar-container">
+                            <div id="calendar"></div>
                         </div>
-                        <div class="card-body">
-                            <a href="{{ url_for('main.list_products') }}"
-                                class="btn btn-outline-primary btn-block mb-2">
-                                <i class="fas fa-arrow-left"></i> Torna alla Lista
-                            </a>
 
-                            {% if is_owner_or_manager %}
-                            <a href="{{ url_for('main.toggle_product', product_id=product.id) }}"
-                                class="btn btn-warning btn-block mb-2">
-                                <i class="fas fa-{% if product.is_active %}eye-slash{% else %}eye{% endif %}"></i>
-                                {% if product.is_active %}Nascondi{% else %}Mostra{% endif %} Prodotto
-                            </a>
-                            {% endif %}
+                        <div class="booking-sidebar">
+                            <div class="booking-form">
+                                <h5><i class="fas fa-cog"></i> Configurazione</h5>
 
-                            <a href="{{ url_for('main.loan_requests') }}" class="btn btn-info btn-block">
-                                <i class="fas fa-history"></i> I Miei Prestiti
-                            </a>
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-cubes"></i> Quantità
+                                    </label>
+                                    <input type="number" id="quantity" class="form-control" min="1"
+                                        max="{{ product.quantity }}" value="1">
+                                    <input type="hidden" id="product-id" value="{{ encrypted_product_id }}">
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-calendar-day"></i> Data Inizio
+                                    </label>
+                                    <input type="date" id="startDate" class="form-control">
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-calendar-day"></i> Data Fine
+                                    </label>
+                                    <input type="date" id="endDate" class="form-control">
+                                </div>
+                            </div>
+
+                            <div class="booking-form">
+                                <h5><i class="fas fa-info-circle"></i> Stato Selezione</h5>
+                                <div id="booking-status" class="booking-status status-empty">
+                                    <i class="fas fa-hand-pointer"></i> Seleziona le date per iniziare
+                                </div>
+
+                                <button id="clear-selection" class="btn btn-outline-secondary btn-sm btn-block mb-3">
+                                    <i class="fas fa-eraser"></i> Pulisci Selezione
+                                </button>
+
+                                <button id="confirm-booking" class="btn btn-success btn-block" disabled>
+                                    <i class="fas fa-check"></i> Conferma Prenotazione
+                                </button>
+                            </div>
+
+                            <div class="legend">
+                                <h6><i class="fas fa-palette"></i> Legenda</h6>
+                                <div class="legend-item">
+                                    <div class="legend-color available-color"></div>
+                                    <span>Disponibile</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color unavailable-color"></div>
+                                    <span>Non Disponibile</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color selected-color"></div>
+                                    <span>Periodo Selezionato</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color today-color"></div>
+                                    <span>Oggi</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- Product Info -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">
+                            <i class="fas fa-info-circle"></i> Informazioni Prodotto
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <strong><i class="fas fa-align-left"></i> Descrizione:</strong>
+                            <p class="mt-2">{{ product.description or 'Nessuna descrizione disponibile' }}</p>
+                        </div>
+
+                        <div class="mb-3">
+                            <strong><i class="fas fa-map-marker-alt"></i> Posizione:</strong>
+                            <p class="mt-1">
+                                {{ product.location.pavilion }}
+                                {% if product.location.room %} - Stanza: {{ product.location.room }}{% endif %}
+                                {% if product.location.cabinet %} - Armadio: {{ product.location.cabinet }}{% endif
+                                %}
+                            </p>
+                        </div>
+
+                        <div class="mb-3">
+                            <strong><i class="fas fa-project-diagram"></i> Progetto:</strong>
+                            <p class="mt-1">{{ product.project.name }}</p>
+                        </div>
+
+                        <div class="mb-3">
+                            <strong><i class="fas fa-tags"></i> Categorie:</strong>
+                            <div class="category-tags">
+                                {% for category in product.categories %}
+                                <span class="category-tag">{{ category.name }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div>
+                            <strong><i class="fas fa-users"></i> Manager:</strong>
+                            <div class="manager-tags">
+                                {% for manager in product.managers %}
+                                <span class="manager-tag"
+                                    title="{{ manager.name }} {{ manager.surname }} ({{ manager.email }})">
+                                    {{ manager.name }} {{ manager.surname }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">
+                            <i class="fas fa-bolt"></i> Azioni Rapide
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <a href="{{ url_for('main.list_products') }}" class="btn btn-outline-primary btn-block mb-2">
+                            <i class="fas fa-arrow-left"></i> Torna alla Lista
+                        </a>
+
+                        {% if is_owner_or_manager %}
+                        <a href="{{ url_for('main.toggle_product', product_id=product.id) }}"
+                            class="btn btn-warning btn-block mb-2">
+                            <i class="fas fa-{% if product.is_active %}eye-slash{% else %}eye{% endif %}"></i>
+                            {% if product.is_active %}Nascondi{% else %}Mostra{% endif %} Prodotto
+                        </a>
+                        {% endif %}
+
+                        <a href="{{ url_for('main.loan_requests') }}" class="btn btn-info btn-block">
+                            <i class="fas fa-history"></i> I Miei Prestiti
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
+    </div>
     </div>
 
     <!-- Modals -->
@@ -1470,7 +1708,151 @@
             $('[data-toggle="tooltip"]').tooltip()
         });
     </script>
+    <script>
+        // Gestione upload immagine
+        document.addEventListener('DOMContentLoaded', function () {
+            const imageInput = document.getElementById('productImageInput');
+            const imagePreview = document.getElementById('imagePreview');
+            const previewImg = document.getElementById('previewImg');
+            const uploadForm = document.getElementById('uploadImageForm');
+            const uploadBtn = document.getElementById('uploadBtn');
 
+            // Preview dell'immagine selezionata
+            if (imageInput) {
+                imageInput.addEventListener('change', function (e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        // Validazione
+                        if (!file.type.match('image.*')) {
+                            alert('Seleziona un file immagine valido');
+                            this.value = '';
+                            return;
+                        }
+
+                        if (file.size > 5 * 1024 * 1024) { // 5MB
+                            alert('Il file deve essere inferiore a 5MB');
+                            this.value = '';
+                            return;
+                        }
+
+                        // Mostra preview
+                        const reader = new FileReader();
+                        reader.onload = function (e) {
+                            previewImg.src = e.target.result;
+                            imagePreview.style.display = 'block';
+                        };
+                        reader.readAsDataURL(file);
+
+                        // Aggiorna label
+                        document.querySelector('.custom-file-label').textContent = file.name;
+                    }
+                });
+            }
+
+            // Gestione submit form upload
+            if (uploadForm) {
+                uploadForm.addEventListener('submit', function (e) {
+                    e.preventDefault();
+
+                    const file = imageInput.files[0];
+                    if (!file) {
+                        alert('Seleziona un file da caricare');
+                        return;
+                    }
+
+                    // Mostra loading
+                    uploadBtn.innerHTML = '<span class="loading-spinner"></span>Caricamento...';
+                    uploadBtn.disabled = true;
+
+                    const formData = new FormData();
+                    formData.append('image', file);
+
+                    fetch('/upload_product_image', {
+                        method: 'POST',
+                        body: formData
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                // Aggiorna il prodotto con la nuova immagine
+                                updateProductImage(data.image_path);
+                                $('#uploadImageModal').modal('hide');
+
+                                // Reset form
+                                uploadForm.reset();
+                                imagePreview.style.display = 'none';
+                                document.querySelector('.custom-file-label').textContent = 'Scegli file...';
+
+                                alert('Immagine caricata con successo!');
+                            } else {
+                                alert(data.message || 'Errore durante il caricamento');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Errore durante il caricamento dell\'immagine');
+                        })
+                        .finally(() => {
+                            // Ripristina button
+                            uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Carica Immagine';
+                            uploadBtn.disabled = false;
+                        });
+                });
+            }
+        });
+
+        // Funzione per aprire modal immagine ingrandita
+        function openImageModal() {
+            $('#imageModal').modal('show');
+        }
+
+        // Funzione per aggiornare l'immagine del prodotto nella pagina
+        function updateProductImage(imagePath) {
+            // Aggiorna l'immagine principale
+            const mainImage = document.getElementById('productMainImage');
+            if (mainImage) {
+                mainImage.src = imagePath;
+            } else {
+                // Se non c'era immagine, ricarica la pagina per mostrare la nuova struttura
+                location.reload();
+            }
+
+            // Aggiorna anche l'immagine nel modal se presente
+            const modalImage = document.querySelector('#imageModal .modal-body img');
+            if (modalImage) {
+                modalImage.src = imagePath;
+            }
+        }
+
+        // Funzione per rimuovere immagine prodotto
+        function removeProductImage() {
+            if (!confirm('Sei sicuro di voler rimuovere l\'immagine di questo prodotto?')) {
+                return;
+            }
+
+            const encryptedId = '{{ encrypted_product_id }}';
+
+            fetch(`/remove_product_image/${encryptedId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Immagine rimossa con successo!');
+                        location.reload(); // Ricarica per mostrare il placeholder
+                    } else {
+                        alert(data.message || 'Errore durante la rimozione');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Errore durante la rimozione dell\'immagine');
+                });
+        }
+    </script>
     <!-- Include notifications -->
     {% include "./backend/notifications.html" %}
 </body>

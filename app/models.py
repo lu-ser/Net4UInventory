@@ -35,6 +35,8 @@ class Product(db.Model):
     owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     
+    image_path = db.Column(db.String(255), nullable=True)
+
     location = db.relationship('Location', backref=db.backref('products', lazy=True))
     project = db.relationship('Project', backref=db.backref('products', lazy=True))
     categories = db.relationship('Category', secondary='product_category', backref='products')

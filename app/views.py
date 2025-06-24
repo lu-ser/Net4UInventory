@@ -111,6 +111,38 @@ def add_product():
         project_id = request.form['project_id']
         category_ids = request.form.getlist('category_ids')
         
+        # Validazione campi obbligatori
+        if not name or not unique_code or not location_id or not project_id:
+            flash('Please fill in all required fields.')
+            return redirect(url_for('main.add_product'))
+        
+        # Gestione upload immagine
+        image_path = None
+        if 'product_image' in request.files:
+            file = request.files['product_image']
+            if file and file.filename != '':
+                # Verifica il tipo di file
+                allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+                if '.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions:
+                    # Crea nome file sicuro
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+                    filename = secure_filename(f"product_{current_user.id}_{timestamp}.{file.filename.rsplit('.', 1)[1].lower()}")
+                    
+                    # Crea cartella se non esiste
+                    upload_path = os.path.join(current_app.root_path, 'static', 'uploads', 'products')
+                    if not os.path.exists(upload_path):
+                        os.makedirs(upload_path)
+                    
+                    # Salva file
+                    file_path = os.path.join(upload_path, filename)
+                    file.save(file_path)
+                    image_path = f"/static/uploads/products/{filename}"
+
+        existing_product = Product.query.filter_by(unique_code=unique_code).first()
+        if existing_product:
+            flash('A product with this code already exists.')
+            return redirect(url_for('main.add_product'))
+        
         if not category_ids:
             flash('You must select at least one category.')
             return redirect(url_for('add_product_page'))
@@ -133,7 +165,8 @@ def add_product():
             project_id=project.id,
             quantity=quantity,
             owner_id=owner_id,
-            categories=categories
+            categories=categories,
+            image_path=image_path
         )
         
         db.session.add(product)
@@ -149,8 +182,12 @@ def add_product():
     categories = Category.query.all()
     projects = Project.query.all()
     locations = Location.query.all()
-    messages=get_flashed_messages(with_categories=True)
-    return render_template('backend/page-add-product.html', categories=categories, locations=locations, projects=projects,messages=messages)
+    messages = get_flashed_messages(with_categories=True)
+    return render_template('backend/page-add-product.html', 
+                         categories=categories, 
+                         locations=locations, 
+                         projects=projects, 
+                         messages=messages)
 
 @main_blueprint.route('/upload_csv', methods=['POST'])
 @login_required
@@ -474,45 +511,6 @@ def reject_return(loan_id):
         # Non bloccare l'operazione se l'email fallisce
     
     return jsonify({'status': 'success', 'message': 'Return rejected - loan is still active. Borrower has been notified by email.'})
-
-@main_blueprint.route('/update_product/<encrypted_id>', methods=['POST']) #TODO Fix del bottone aggiungi location
-@login_required
-def update_product(encrypted_id):
-    try:
-        product_id = current_app.auth_s.loads(encrypted_id)  # Decodifica l'ID
-    except Exception as e:
-        flash('Invalid product ID.', 'error')
-        return redirect(url_for('main.index'))
-    product = Product.query.get_or_404(product_id)
-    if product.owner_id != current_user.id:
-        flash('You do not have permission to edit this product.', 'error')
-        return redirect(url_for('main.list_products'))
-
-    product.name = request.form['name']
-    product.description = request.form['description']
-    product.quantity = request.form['quantity']
-    category_ids = request.form.getlist('category_ids[]')
-    product.categories = Category.query.filter(Category.id.in_(category_ids)).all()
-    # Assicurati che il proprietario sia sempre un manager
-    manager_ids = request.form.getlist('managers[]')
-    project_id = request.form.get('project_id')
-    product.project_id = project_id
-    if str(product.owner_id) not in manager_ids:
-        manager_ids.append(str(product.owner_id))
-    product.location_id = request.form['location_id']
-    # Update manager associations
-    product.managers = [User.query.get(manager_id) for manager_id in manager_ids if User.query.get(manager_id)]
-
-    try:
-        db.session.commit()
-        #session['flash_message'] = ('success', 'Product updated successfully!')
-        flash('Invalid email or password.','success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error updating product: {str(e)}', 'error')
-        session['flash_message'] = ('error', 'An error occured')
-    return redirect(url_for('main.list_products'))
-
 
 
 
@@ -1742,3 +1740,286 @@ def get_user_activity():
     except Exception as e:
         print(f"Error getting activity: {str(e)}")
         return jsonify({'status': 'error', 'message': 'Failed to load activity'}), 500
+    
+
+# Aggiungi queste routes al file app/views.py
+
+@main_blueprint.route('/add_multiple_products')
+@login_required
+def add_multiple_products():
+    """Pagina per inserire più prodotti manualmente"""
+    categories = Category.query.all()
+    projects = Project.query.all()
+    locations = Location.query.all()
+    all_users = User.query.all()
+    
+    messages = get_flashed_messages(with_categories=True)
+    return render_template('backend/page-add-multiple-products.html', 
+                         categories=categories, 
+                         locations=locations, 
+                         projects=projects,
+                         all_users=all_users,
+                         messages=messages)
+
+@main_blueprint.route('/upload_product_image', methods=['POST'])
+@login_required
+def upload_product_image():
+    """Upload immagine per prodotto (AJAX)"""
+    try:
+        if 'image' not in request.files:
+            return jsonify({'status': 'error', 'message': 'No image file'}), 400
+        
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({'status': 'error', 'message': 'No file selected'}), 400
+        
+        # Verifica il tipo di file
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+        if not (file and '.' in file.filename and 
+                file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
+            return jsonify({'status': 'error', 'message': 'Invalid file type'}), 400
+        
+        # Crea un nome file sicuro e unico
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+        filename = secure_filename(f"product_{current_user.id}_{timestamp}.{file.filename.rsplit('.', 1)[1].lower()}")
+        
+        # Crea la cartella se non esiste
+        upload_path = os.path.join(current_app.root_path, 'static', 'uploads', 'products')
+        if not os.path.exists(upload_path):
+            os.makedirs(upload_path)
+        
+        # Salva il file
+        file_path = os.path.join(upload_path, filename)
+        file.save(file_path)
+        
+        # Restituisci il path relativo
+        relative_path = f"/static/uploads/products/{filename}"
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Image uploaded successfully',
+            'image_path': relative_path,
+            'filename': filename
+        })
+        
+    except Exception as e:
+        print(f"Error uploading product image: {str(e)}")
+        return jsonify({'status': 'error', 'message': 'Error uploading image'}), 500
+
+@main_blueprint.route('/process_multiple_products', methods=['POST'])
+@login_required
+def process_multiple_products():
+    """Elabora l'inserimento di più prodotti con immagini"""
+    products_count = int(request.form.get('products_count', 0))
+    error_occurred = False
+    
+    for i in range(products_count):
+        name = request.form.get(f'name_{i}')
+        code = request.form.get(f'code_{i}')
+        description = request.form.get(f'description_{i}')
+        pavilion = request.form.get(f'pavilion_{i}')
+        room = request.form.get(f'room_{i}')
+        cabinet = request.form.get(f'cabinet_{i}')
+        project_name = request.form.get(f'project_{i}')
+        categories = request.form.get(f'categories_{i}', '').split(',')
+        quantity = request.form.get(f'quantity_{i}')
+        manager_ids = request.form.getlist(f'managers_{i}[]')
+        image_path = request.form.get(f'image_path_{i}')  # Nuovo campo per l'immagine
+
+        # Validazione dei campi obbligatori
+        if not name or not code or not pavilion or not project_name or not quantity:
+            flash(f'Prodotto {i+1}: Tutti i campi eccetto Descrizione, Stanza e Armadio sono obbligatori.', 'error')
+            error_occurred = True
+            continue
+
+        try:
+            quantity = int(quantity)
+            if quantity <= 0:
+                raise ValueError
+        except ValueError:
+            flash(f'Prodotto {i+1}: La quantità deve essere un numero positivo.', 'error')
+            error_occurred = True
+            continue
+
+        # Trova o crea la location
+        location = Location.query.filter_by(pavilion=pavilion, room=room, cabinet=cabinet).first()
+        if not location:
+            location = Location(pavilion=pavilion, room=room, cabinet=cabinet)
+            db.session.add(location)
+
+        # Trova o crea il progetto
+        project = Project.query.filter_by(name=project_name).first()
+        if not project:
+            project = Project(name=project_name)
+            db.session.add(project)
+
+        # Trova o crea le categorie
+        category_objects = []
+        for cat_name in categories:
+            cat_name = cat_name.strip()
+            if cat_name:
+                category = Category.query.filter_by(name=cat_name).first()
+                if not category:
+                    category = Category(name=cat_name)
+                    db.session.add(category)
+                category_objects.append(category)
+
+        # Crea il prodotto con immagine
+        try:
+            product = Product(
+                name=name,
+                unique_code=code,
+                description=description,
+                location=location,
+                project=project,
+                categories=category_objects,
+                quantity=quantity,
+                owner_id=current_user.id,
+                image_path=image_path  # Aggiungi il campo immagine
+            )
+            db.session.add(product)
+            db.session.flush()
+
+            # Aggiungi il proprietario come manager
+            owner_manager = ProductManager(product=product, user=current_user)
+            db.session.add(owner_manager)
+
+            # Aggiungi gli altri manager
+            for manager_id in manager_ids:
+                user = User.query.get(int(manager_id))
+                if user and user != current_user:
+                    product_manager = ProductManager(product=product, user=user)
+                    db.session.add(product_manager)
+
+        except IntegrityError:
+            db.session.rollback()
+            flash(f'Prodotto {i+1}: Un prodotto con questo codice esiste già.', 'error')
+            error_occurred = True
+            continue
+
+    if error_occurred:
+        db.session.rollback()
+        return redirect(url_for('main.add_multiple_products'))
+    else:
+        try:
+            db.session.commit()
+            flash(f'{products_count} prodotti creati con successo!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Errore durante il salvataggio dei prodotti: {str(e)}', 'error')
+            return redirect(url_for('main.add_multiple_products'))
+    
+    return redirect(url_for('main.list_products'))
+
+# Aggiungi o aggiorna questa route in views.py
+
+@main_blueprint.route('/update_product/<encrypted_id>', methods=['POST'])
+@login_required
+def update_product(encrypted_id):
+    try:
+        product_id = auth_s.loads(encrypted_id)
+        product = Product.query.get_or_404(product_id)
+        
+        # Verifica permessi
+        if not (product.owner_id == current_user.id or 
+                current_user in product.managers):
+            flash('Non hai i permessi per modificare questo prodotto.', 'error')
+            return redirect(url_for('main.list_products'))
+        
+        # Aggiorna campi base
+        product.name = request.form.get('name', product.name)
+        product.description = request.form.get('description', product.description)
+        product.quantity = int(request.form.get('quantity', product.quantity))
+        
+        # Gestione upload nuova immagine
+        if 'product_image' in request.files:
+            file = request.files['product_image']
+            if file and file.filename != '':
+                # Verifica tipo file
+                allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+                if '.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions:
+                    
+                    # Rimuovi immagine precedente se esiste
+                    if product.image_path and 'uploads' in product.image_path:
+                        old_path = os.path.join(current_app.root_path, 'static', 
+                                              product.image_path.lstrip('/static/'))
+                        if os.path.exists(old_path):
+                            os.remove(old_path)
+                    
+                    # Salva nuova immagine
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+                    filename = secure_filename(f"product_{current_user.id}_{timestamp}.{file.filename.rsplit('.', 1)[1].lower()}")
+                    
+                    upload_path = os.path.join(current_app.root_path, 'static', 'uploads', 'products')
+                    if not os.path.exists(upload_path):
+                        os.makedirs(upload_path)
+                    
+                    file_path = os.path.join(upload_path, filename)
+                    file.save(file_path)
+                    product.image_path = f"/static/uploads/products/{filename}"
+                else:
+                    flash('Tipo di file non supportato. Usa PNG, JPG, GIF o WebP.', 'error')
+                    return redirect(url_for('main.product_detail', encrypted_id=encrypted_id))
+        
+        # Gestione categorie (se incluso nel form)
+        if 'category_ids' in request.form:
+            category_ids = request.form.getlist('category_ids')
+            if category_ids:
+                categories = Category.query.filter(Category.id.in_(category_ids)).all()
+                product.categories = categories
+        
+        # Gestione managers (se incluso nel form)
+        if 'manager_ids' in request.form:
+            manager_ids = request.form.getlist('manager_ids')
+            if manager_ids:
+                # Rimuovi manager esistenti (eccetto il proprietario)
+                ProductManager.query.filter(
+                    ProductManager.product_id == product.id,
+                    ProductManager.user_id != product.owner_id
+                ).delete()
+                
+                # Aggiungi nuovi manager
+                for manager_id in manager_ids:
+                    user = User.query.get(int(manager_id))
+                    if user and user.id != product.owner_id:
+                        product_manager = ProductManager(product_id=product.id, user_id=user.id)
+                        db.session.add(product_manager)
+        
+        db.session.commit()
+        flash('Prodotto aggiornato con successo!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Errore durante l\'aggiornamento: {str(e)}', 'error')
+    
+    return redirect(url_for('main.product_detail', encrypted_id=encrypted_id))
+
+# Route per rimuovere immagine prodotto
+@main_blueprint.route('/remove_product_image/<encrypted_id>', methods=['POST'])
+@login_required
+def remove_product_image(encrypted_id):
+    try:
+        product_id = auth_s.loads(encrypted_id)
+        product = Product.query.get_or_404(product_id)
+        
+        # Verifica permessi
+        if not (product.owner_id == current_user.id or 
+                current_user in product.managers):
+            return jsonify({'status': 'error', 'message': 'Permessi insufficienti'}), 403
+        
+        # Rimuovi file fisico se esiste
+        if product.image_path and 'uploads' in product.image_path:
+            old_path = os.path.join(current_app.root_path, 'static', 
+                                  product.image_path.lstrip('/static/'))
+            if os.path.exists(old_path):
+                os.remove(old_path)
+        
+        # Rimuovi da database
+        product.image_path = None
+        db.session.commit()
+        
+        return jsonify({'status': 'success', 'message': 'Immagine rimossa con successo'})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500

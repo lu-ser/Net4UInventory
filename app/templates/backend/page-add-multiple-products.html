@@ -1,0 +1,1347 @@
+<!-- Salva come app/templates/backend/page-add-multiple-products.html -->
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>POS Dash | Responsive Bootstrap 4 Admin Dashboard Template</title>
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="../../static/images/favicon.ico" />
+    <link rel="stylesheet" href="../../static/css/backend-plugin.min.css">
+    <link rel="stylesheet" href="../../static/css/backend.css?v=1.0.0">
+    <link rel="stylesheet" href="../../static/vendor/@fortawesome/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="../../static/vendor/line-awesome/dist/line-awesome/css/line-awesome.min.css">
+    <link rel="stylesheet" href="../../static/vendor/remixicon/fonts/remixicon.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+</head>
+
+<body class="  ">
+    <!-- loader Start -->
+    <div id="loading">
+        <div id="loading-center">
+        </div>
+    </div>
+    <!-- loader END -->
+    <!-- Wrapper Start -->
+    <div class="wrapper">
+
+        {% include "./backend/sidebar.html" %}
+        {%include "./backend/navbar.html" %}
+    </div>
+
+    <div class="modal fade" id="new-order" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <div class="popup text-left">
+                        <h4 class="mb-3">New Order</h4>
+                        <div class="content create-workform bg-body">
+                            <div class="pb-3">
+                                <label class="mb-2">Email</label>
+                                <input type="text" class="form-control" placeholder="Enter Name or Email">
+                            </div>
+                            <div class="col-lg-12 mt-4">
+                                <div class="d-flex flex-wrap align-items-ceter justify-content-center">
+                                    <div class="btn btn-primary mr-4" data-dismiss="modal">Cancel</div>
+                                    <div class="btn btn-outline-primary" data-dismiss="modal">Create</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="content-page">
+        <div class="container-fluid add-form-list">
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between">
+                            <div class="header-title">
+                                <h4 class="card-title">Aggiungi Più Prodotti</h4>
+                                <p class="text-muted">Inserisci più prodotti contemporaneamente con supporto per le
+                                    immagini</p>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-primary" id="add-product-btn">
+                                    <i class="fas fa-plus"></i> Aggiungi Prodotto
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Messaggi flash -->
+                            {% if messages %}
+                            {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show"
+                                role="alert">
+                                {{ message }}
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            {% endfor %}
+                            {% endif %}
+
+                            <form action="/process_multiple_products" method="POST" id="multiple-products-form">
+                                <input type="hidden" name="products_count" id="products-count" value="1">
+
+                                <div id="products-container">
+                                    <!-- Il primo prodotto sarà aggiunto automaticamente via JavaScript -->
+                                </div>
+
+                                <div class="text-center mt-4">
+                                    <button type="submit" class="btn btn-success btn-lg">
+                                        <i class="fas fa-save"></i> Salva Tutti i Prodotti
+                                    </button>
+                                    <a href="{{ url_for('main.add_product') }}" class="btn btn-secondary btn-lg">
+                                        <i class="fas fa-arrow-left"></i> Torna Indietro
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template per nuovo prodotto -->
+    <template id="product-template">
+        <div class="product-card card mb-4" data-product-index="">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-box"></i> Prodotto <span class="product-number"></span>
+                </h5>
+                <button type="button" class="btn btn-danger btn-sm remove-product-btn">
+                    <i class="fas fa-trash"></i> Rimuovi
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Sezione Immagine -->
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-image"></i> Immagine Prodotto
+                            </label>
+                            <div class="image-upload-area">
+                                <div class="image-preview" style="display: none;">
+                                    <img src="" alt="Product Image" class="img-thumbnail"
+                                        style="max-width: 200px; max-height: 200px;">
+                                    <button type="button" class="btn btn-sm btn-danger remove-image-btn mt-2">
+                                        <i class="fas fa-times"></i> Rimuovi
+                                    </button>
+                                </div>
+                                <div class="upload-placeholder">
+                                    <div class="upload-box text-center p-4 border border-dashed rounded">
+                                        <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                                        <p class="text-muted mb-2">Clicca per caricare un'immagine</p>
+                                        <small class="text-muted">PNG, JPG, GIF fino a 5MB</small>
+                                    </div>
+                                    <input type="file" class="image-input" accept="image/*" style="display: none;">
+                                </div>
+                                <input type="hidden" class="image-path-input" name="" value="">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sezione Informazioni Prodotto -->
+                    <div class="col-md-9">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-tag"></i> Nome Prodotto *
+                                    </label>
+                                    <input type="text" name="" class="form-control"
+                                        placeholder="Inserisci nome prodotto" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-barcode"></i> Codice Prodotto *
+                                    </label>
+                                    <input type="text" name="" class="form-control"
+                                        placeholder="Inserisci codice univoco" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-align-left"></i> Descrizione
+                            </label>
+                            <textarea name="" class="form-control" rows="3"
+                                placeholder="Descrizione del prodotto"></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-building"></i> Padiglione *
+                                    </label>
+                                    <div class="input-group">
+                                        <select name="" class="form-control pavilion-select" required
+                                            style="width: 100%;">
+                                            <option value="">Seleziona padiglione...</option>
+                                            {% for location in locations %}
+                                            <option value="{{ location.pavilion }}">{{ location.pavilion }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <div class="input-group-append">
+                                            <button type="button" class="btn btn-outline-primary add-location-btn"
+                                                data-toggle="tooltip" title="Aggiungi nuova posizione">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-door-open"></i> Stanza
+                                    </label>
+                                    <select name="" class="form-control room-select" style="width: 100%;">
+                                        <option value="">Seleziona stanza...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-archive"></i> Armadio
+                                    </label>
+                                    <select name="" class="form-control cabinet-select" style="width: 100%;">
+                                        <option value="">Seleziona armadio...</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-project-diagram"></i> Progetto *
+                                    </label>
+                                    <div class="input-group">
+                                        <select name="" class="form-control project-select" required
+                                            style="width: 100%;">
+                                            <option value="">Seleziona progetto...</option>
+                                            {% for project in projects %}
+                                            <option value="{{ project.name }}">{{ project.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <div class="input-group-append">
+                                            <button type="button" class="btn btn-outline-primary add-project-btn"
+                                                data-toggle="tooltip" title="Aggiungi nuovo progetto">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-cubes"></i> Quantità *
+                                    </label>
+                                    <input type="number" name="" class="form-control" min="1" value="1" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-tags"></i> Categorie
+                                    </label>
+                                    <div class="input-group">
+                                        <select name="" class="form-control categories-select" multiple
+                                            style="width: 100%;">
+                                            {% for category in categories %}
+                                            <option value="{{ category.name }}">{{ category.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <div class="input-group-append">
+                                            <button type="button" class="btn btn-outline-primary add-category-btn"
+                                                data-toggle="tooltip" title="Aggiungi nuova categoria">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">Seleziona una o più categorie</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-users"></i> Manager Aggiuntivi
+                                    </label>
+                                    <select name="" class="form-control managers-select" multiple style="width: 100%;">
+                                        {% for user in all_users %}
+                                        {% if user.id != current_user.id %}
+                                        <option value="{{ user.id }}">{{ user.name }} {{ user.surname }} ({{ user.email
+                                            }})</option>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                    <small class="text-muted">Seleziona manager aggiuntivi</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Modali per aggiungere nuovi elementi -->
+
+    <!-- Modal Nuova Categoria -->
+    <div class="modal fade" id="newCategoryModal" tabindex="-1" aria-labelledby="newCategoryModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="newCategoryModalLabel">
+                        <i class="fas fa-tags"></i> Nuova Categoria
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form id="newCategoryForm">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="categoryName">Nome Categoria *</label>
+                            <input type="text" class="form-control" id="categoryName" name="name"
+                                placeholder="Inserisci nome categoria" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Annulla</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Salva Categoria
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nuovo Progetto -->
+    <div class="modal fade" id="newProjectModal" tabindex="-1" aria-labelledby="newProjectModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="newProjectModalLabel">
+                        <i class="fas fa-project-diagram"></i> Nuovo Progetto
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form id="newProjectForm">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="projectName">Nome Progetto *</label>
+                            <input type="text" class="form-control" id="projectName" name="name"
+                                placeholder="Inserisci nome progetto" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="projectFunding">Ente Finanziatore</label>
+                            <input type="text" class="form-control" id="projectFunding" name="funding_body"
+                                placeholder="Inserisci ente finanziatore">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Annulla</button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> Salva Progetto
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nuova Posizione -->
+    <div class="modal fade" id="newLocationModal" tabindex="-1" aria-labelledby="newLocationModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="newLocationModalLabel">
+                        <i class="fas fa-map-marker-alt"></i> Nuova Posizione
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form id="newLocationForm">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="locationPavilion">Padiglione *</label>
+                            <input type="text" class="form-control" id="locationPavilion" name="pavilion"
+                                placeholder="Inserisci padiglione" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="locationRoom">Stanza</label>
+                            <input type="text" class="form-control" id="locationRoom" name="room"
+                                placeholder="Inserisci stanza">
+                        </div>
+                        <div class="form-group">
+                            <label for="locationCabinet">Armadio</label>
+                            <input type="text" class="form-control" id="locationCabinet" name="cabinet"
+                                placeholder="Inserisci armadio">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Annulla</button>
+                        <button type="submit" class="btn btn-info">
+                            <i class="fas fa-save"></i> Salva Posizione
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template per nuovo prodotto -->
+    <template id="product-template">
+        <div class="product-card card mb-4" data-product-index="">
+            <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                <h5 class="mb-0">
+                    <i class="fas fa-box text-primary"></i> Prodotto <span class="product-number"></span>
+                </h5>
+                <button type="button" class="btn btn-danger btn-sm remove-product-btn">
+                    <i class="fas fa-trash"></i> Rimuovi
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Sezione Immagine -->
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-image"></i> Immagine Prodotto
+                            </label>
+                            <div class="image-upload-area">
+                                <div class="image-preview" style="display: none;">
+                                    <img src="" alt="Product Image" class="img-thumbnail"
+                                        style="max-width: 200px; max-height: 200px;">
+                                    <button type="button" class="btn btn-sm btn-danger remove-image-btn mt-2">
+                                        <i class="fas fa-times"></i> Rimuovi
+                                    </button>
+                                </div>
+                                <div class="upload-placeholder">
+                                    <div class="upload-box text-center p-4 border border-dashed rounded">
+                                        <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                                        <p class="text-muted mb-2">Clicca per caricare un'immagine</p>
+                                        <small class="text-muted">PNG, JPG, GIF fino a 5MB</small>
+                                    </div>
+                                    <input type="file" class="image-input" accept="image/*" style="display: none;">
+                                </div>
+                                <input type="hidden" class="image-path-input" name="" value="">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sezione Informazioni Prodotto -->
+                    <div class="col-md-9">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-tag"></i> Nome Prodotto *
+                                    </label>
+                                    <input type="text" name="" class="form-control"
+                                        placeholder="Inserisci nome prodotto" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-barcode"></i> Codice Prodotto *
+                                    </label>
+                                    <input type="text" name="" class="form-control"
+                                        placeholder="Inserisci codice univoco" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-align-left"></i> Descrizione
+                            </label>
+                            <textarea name="" class="form-control" rows="3"
+                                placeholder="Descrizione del prodotto"></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-building"></i> Padiglione *
+                                    </label>
+                                    <input type="text" name="" class="form-control" placeholder="Padiglione" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-door-open"></i> Stanza
+                                    </label>
+                                    <input type="text" name="" class="form-control" placeholder="Stanza">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-archive"></i> Armadio
+                                    </label>
+                                    <input type="text" name="" class="form-control" placeholder="Armadio">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-project-diagram"></i> Progetto *
+                                    </label>
+                                    <input type="text" name="" class="form-control" placeholder="Nome progetto"
+                                        required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-cubes"></i> Quantità *
+                                    </label>
+                                    <input type="number" name="" class="form-control" min="1" value="1" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-tags"></i> Categorie
+                                    </label>
+                                    <input type="text" name="" class="form-control"
+                                        placeholder="Categorie separate da virgola">
+                                    <small class="text-muted">Esempio: elettronica, computer, hardware</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-users"></i> Manager Aggiuntivi
+                                    </label>
+                                    <select name="" class="form-control managers-select" multiple>
+                                        {% for user in all_users %}
+                                        {% if user.id != current_user.id %}
+                                        <option value="{{ user.id }}">{{ user.name }} {{ user.surname }}</option>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                    <small class="text-muted">Tieni premuto Ctrl per selezionare più manager</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    </div>
+    <!-- Wrapper End-->
+    <footer class="iq-footer">
+        <div class="container-fluid">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <ul class="list-inline mb-0">
+                                <li class="list-inline-item"><a href="../backend/privacy-policy.html">Privacy Policy</a>
+                                </li>
+                                <li class="list-inline-item"><a href="../backend/terms-of-service.html">Terms of Use</a>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-lg-6 text-right">
+                            <span class="mr-1">
+                                <script>document.write(new Date().getFullYear())</script>©
+                            </span> <a href="#" class="">POS Dash</a>.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Backend Bundle JavaScript -->
+    <script src="../../static/js/backend-bundle.min.js"></script>
+
+    <!-- Table Treeview JavaScript -->
+    <script src="../../static/js/table-treeview.js"></script>
+
+    <!-- Chart Custom JavaScript -->
+    <script src="../../static/js/customizer.js"></script>
+
+    <!-- Chart Custom JavaScript -->
+    <script async src="../../static/js/chart-custom.js"></script>
+
+    <!-- SweetAlert -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- app JavaScript -->
+    <script src="../../static/js/app.js"></script>
+
+    <style>
+        .product-card {
+            border-left: 4px solid #007bff;
+            transition: all 0.3s ease;
+        }
+
+        .product-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .image-upload-area .upload-box {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px dashed #dee2e6;
+        }
+
+        .image-upload-area .upload-box:hover {
+            background-color: #f8f9fa;
+            border-color: #007bff;
+        }
+
+        .image-preview img {
+            border-radius: 8px;
+        }
+
+        .product-card .card-header {
+            background-color: #f8f9fa !important;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .remove-product-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .method-section {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            let productIndex = 0;
+
+            // Aggiungi il primo prodotto automaticamente
+            addProduct();
+
+            // Event listener per aggiungere prodotto
+            document.getElementById('add-product-btn').addEventListener('click', addProduct);
+
+            function addProduct() {
+                const template = document.getElementById('product-template');
+                const clone = template.content.cloneNode(true);
+
+                // Imposta l'indice del prodotto
+                const productCard = clone.querySelector('.product-card');
+                productCard.setAttribute('data-product-index', productIndex);
+
+                // Aggiorna il numero del prodotto
+                clone.querySelector('.product-number').textContent = productIndex + 1;
+
+                // Imposta i nomi dei campi input
+                setInputNames(clone, productIndex);
+
+                // Aggiungi event listeners
+                addEventListeners(clone, productIndex);
+
+                // Aggiungi al container
+                document.getElementById('products-container').appendChild(clone);
+
+                // Aggiorna il contatore
+                productIndex++;
+                updateProductsCount();
+
+                // Nascondi il bottone rimuovi se è il primo prodotto
+                updateRemoveButtons();
+            }
+
+            function setInputNames(clone, index) {
+                // Imposta i nomi degli input
+                clone.querySelector('input[placeholder="Inserisci nome prodotto"]').name = `name_${index}`;
+                clone.querySelector('input[placeholder="Inserisci codice univoco"]').name = `code_${index}`;
+                clone.querySelector('textarea[placeholder="Descrizione del prodotto"]').name = `description_${index}`;
+                clone.querySelector('input[placeholder="Padiglione"]').name = `pavilion_${index}`;
+                clone.querySelector('input[placeholder="Stanza"]').name = `room_${index}`;
+                clone.querySelector('input[placeholder="Armadio"]').name = `cabinet_${index}`;
+                clone.querySelector('input[placeholder="Nome progetto"]').name = `project_${index}`;
+                clone.querySelector('input[type="number"]').name = `quantity_${index}`;
+                clone.querySelector('input[placeholder="Categorie separate da virgola"]').name = `categories_${index}`;
+                clone.querySelector('.managers-select').name = `managers_${index}[]`;
+                clone.querySelector('.image-path-input').name = `image_path_${index}`;
+            }
+
+            function addEventListeners(clone, index) {
+                // Event listener per rimuovere prodotto
+                clone.querySelector('.remove-product-btn').addEventListener('click', function () {
+                    if (confirm('Sei sicuro di voler rimuovere questo prodotto?')) {
+                        this.closest('.product-card').remove();
+                        updateProductsCount();
+                        updateRemoveButtons();
+                        renumberProducts();
+                    }
+                });
+
+                // Event listener per upload immagine
+                const uploadBox = clone.querySelector('.upload-box');
+                const imageInput = clone.querySelector('.image-input');
+                const imagePreview = clone.querySelector('.image-preview');
+                const uploadPlaceholder = clone.querySelector('.upload-placeholder');
+                const imagePathInput = clone.querySelector('.image-path-input');
+
+                uploadBox.addEventListener('click', () => imageInput.click());
+
+                imageInput.addEventListener('change', function () {
+                    const file = this.files[0];
+                    if (file) {
+                        uploadImage(file, imagePreview, uploadPlaceholder, imagePathInput);
+                    }
+                });
+
+                // Event listener per rimuovere immagine
+                clone.querySelector('.remove-image-btn').addEventListener('click', function () {
+                    imagePreview.style.display = 'none';
+                    uploadPlaceholder.style.display = 'block';
+                    imagePathInput.value = '';
+                    imageInput.value = '';
+                });
+            }
+
+            function uploadImage(file, previewElement, placeholderElement, pathInput) {
+                // Validazione file
+                if (!file.type.match('image.*')) {
+                    Swal.fire('Errore', 'Seleziona un file immagine valido', 'error');
+                    return;
+                }
+
+                if (file.size > 5 * 1024 * 1024) { // 5MB
+                    Swal.fire('Errore', 'Il file deve essere inferiore a 5MB', 'error');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('image', file);
+
+                // Mostra loading
+                placeholderElement.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Caricamento...</p></div>';
+
+                fetch('/upload_product_image', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Mostra preview
+                            previewElement.querySelector('img').src = data.image_path;
+                            previewElement.style.display = 'block';
+                            placeholderElement.style.display = 'none';
+                            pathInput.value = data.image_path;
+
+                            Swal.fire('Successo', 'Immagine caricata con successo!', 'success');
+                        } else {
+                            Swal.fire('Errore', data.message || 'Errore durante il caricamento', 'error');
+                            resetUploadPlaceholder(placeholderElement);
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire('Errore', 'Errore durante il caricamento dell\'immagine', 'error');
+                        resetUploadPlaceholder(placeholderElement);
+                    });
+            }
+
+            function resetUploadPlaceholder(placeholderElement) {
+                placeholderElement.innerHTML = `
+            <div class="upload-box text-center p-4 border border-dashed rounded">
+                <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                <p class="text-muted mb-2">Clicca per caricare un'immagine</p>
+                <small class="text-muted">PNG, JPG, GIF fino a 5MB</small>
+            </div>
+        `;
+            }
+
+            function updateProductsCount() {
+                const count = document.querySelectorAll('.product-card').length;
+                document.getElementById('products-count').value = count;
+            }
+
+            function updateRemoveButtons() {
+                const productCards = document.querySelectorAll('.product-card');
+                productCards.forEach((card, index) => {
+                    const removeBtn = card.querySelector('.remove-product-btn');
+                    if (productCards.length <= 1) {
+                        removeBtn.style.display = 'none';
+                    } else {
+                        removeBtn.style.display = 'block';
+                    }
+                });
+            }
+
+            function renumberProducts() {
+                const productCards = document.querySelectorAll('.product-card');
+                productCards.forEach((card, index) => {
+                    // Aggiorna il numero visualizzato
+                    card.querySelector('.product-number').textContent = index + 1;
+
+                    // Aggiorna l'indice del prodotto
+                    card.setAttribute('data-product-index', index);
+
+                    // Aggiorna i nomi degli input
+                    const inputs = card.querySelectorAll('input, textarea, select');
+                    inputs.forEach(input => {
+                        if (input.name) {
+                            const baseName = input.name.replace(/_\d+/, '');
+                            if (input.name.includes('[]')) {
+                                input.name = `${baseName}_${index}[]`;
+                            } else {
+                                input.name = `${baseName}_${index}`;
+                            }
+                        }
+                    });
+                });
+            }
+
+            // Conferma prima di inviare il form
+            document.getElementById('multiple-products-form').addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const productCount = document.querySelectorAll('.product-card').length;
+
+                Swal.fire({
+                    title: 'Conferma salvataggio',
+                    text: `Sei sicuro di voler salvare ${productCount} prodotto/i?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#28a745',
+                    cancelButtonColor: '#dc3545',
+                    confirmButtonText: 'Sì, salva!',
+                    cancelButtonText: 'Annulla'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.submit();
+                    }
+                });
+            });
+        });
+    </script>
+    <script>
+        // Dati delle location per gestire cascading dropdown
+        const locationsData = {
+    {% for location in locations %}
+        "{{ location.pavilion }}": {
+            rooms: [{% if location.room %} "{{ location.room }}"{% endif %}],
+        cabinets: [{% if location.cabinet %}"{{ location.cabinet }}"{% endif %}]
+    }{% if not loop.last %}, {% endif %}
+        {% endfor %}
+};
+
+        // Raggruppa locations per pavilion
+        const pavilionData = {};
+        {% for location in locations %}
+        if (!pavilionData["{{ location.pavilion }}"]) {
+            pavilionData["{{ location.pavilion }}"] = {
+                rooms: new Set(),
+                cabinets: new Set()
+            };
+        }
+        {% if location.room %}
+        pavilionData["{{ location.pavilion }}"].rooms.add("{{ location.room }}");
+        {% endif %}
+        {% if location.cabinet %}
+        pavilionData["{{ location.pavilion }}"].cabinets.add("{{ location.cabinet }}");
+        {% endif %}
+        {% endfor %}
+
+        // Converti Sets in Arrays
+        Object.keys(pavilionData).forEach(pavilion => {
+            pavilionData[pavilion].rooms = Array.from(pavilionData[pavilion].rooms);
+            pavilionData[pavilion].cabinets = Array.from(pavilionData[pavilion].cabinets);
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            let productIndex = 0;
+
+            // Aggiungi il primo prodotto automaticamente
+            addProduct();
+
+            // Event listener per aggiungere prodotto
+            document.getElementById('add-product-btn').addEventListener('click', addProduct);
+
+            // Gestione modali per aggiungere nuovi elementi
+            setupModals();
+
+            function addProduct() {
+                const template = document.getElementById('product-template');
+                const clone = template.content.cloneNode(true);
+
+                // Imposta l'indice del prodotto
+                const productCard = clone.querySelector('.product-card');
+                productCard.setAttribute('data-product-index', productIndex);
+
+                // Aggiorna il numero del prodotto
+                clone.querySelector('.product-number').textContent = productIndex + 1;
+
+                // Imposta i nomi dei campi input
+                setInputNames(clone, productIndex);
+
+                // Aggiungi event listeners
+                addEventListeners(clone, productIndex);
+
+                // Aggiungi al container
+                document.getElementById('products-container').appendChild(clone);
+
+                // Inizializza Select2 per i nuovi dropdown
+                initializeSelect2(productCard, productIndex);
+
+                // Aggiorna il contatore
+                productIndex++;
+                updateProductsCount();
+
+                // Nascondi il bottone rimuovi se è il primo prodotto
+                updateRemoveButtons();
+            }
+
+            function setInputNames(clone, index) {
+                // Input classici
+                clone.querySelector('input[placeholder="Inserisci nome prodotto"]').name = `name_${index}`;
+                clone.querySelector('input[placeholder="Inserisci codice univoco"]').name = `code_${index}`;
+                clone.querySelector('textarea[placeholder="Descrizione del prodotto"]').name = `description_${index}`;
+                clone.querySelector('input[type="number"]').name = `quantity_${index}`;
+                clone.querySelector('.image-path-input').name = `image_path_${index}`;
+
+                // Select dropdown
+                clone.querySelector('.pavilion-select').name = `pavilion_${index}`;
+                clone.querySelector('.room-select').name = `room_${index}`;
+                clone.querySelector('.cabinet-select').name = `cabinet_${index}`;
+                clone.querySelector('.project-select').name = `project_${index}`;
+                clone.querySelector('.categories-select').name = `categories_${index}`;
+                clone.querySelector('.managers-select').name = `managers_${index}[]`;
+            }
+
+            function initializeSelect2(productCard, index) {
+                const $card = $(productCard);
+
+                // Inizializza tutti i select con Select2
+                $card.find('.project-select').select2({
+                    placeholder: 'Seleziona progetto...',
+                    allowClear: true,
+                    tags: false,
+                    width: '100%'
+                });
+
+                $card.find('.categories-select').select2({
+                    placeholder: 'Seleziona categorie...',
+                    allowClear: true,
+                    tags: false,
+                    width: '100%'
+                });
+
+                $card.find('.managers-select').select2({
+                    placeholder: 'Seleziona manager...',
+                    allowClear: true,
+                    width: '100%'
+                });
+
+                // Dropdown posizioni con cascading
+                const $pavilion = $card.find('.pavilion-select');
+                const $room = $card.find('.room-select');
+                const $cabinet = $card.find('.cabinet-select');
+
+                // Rimuovi duplicati dai pavilion
+                const uniquePavilions = [...new Set(Object.keys(pavilionData))];
+                $pavilion.empty().append('<option value="">Seleziona padiglione...</option>');
+                uniquePavilions.forEach(pavilion => {
+                    $pavilion.append(`<option value="${pavilion}">${pavilion}</option>`);
+                });
+
+                $pavilion.select2({
+                    placeholder: 'Seleziona padiglione...',
+                    allowClear: true,
+                    width: '100%'
+                });
+
+                $room.select2({
+                    placeholder: 'Seleziona stanza...',
+                    allowClear: true,
+                    width: '100%'
+                });
+
+                $cabinet.select2({
+                    placeholder: 'Seleziona armadio...',
+                    allowClear: true,
+                    width: '100%'
+                });
+
+                // Cascading dropdown: pavilion -> room/cabinet
+                $pavilion.on('change', function () {
+                    const selectedPavilion = $(this).val();
+
+                    // Reset room e cabinet
+                    $room.empty().append('<option value="">Seleziona stanza...</option>');
+                    $cabinet.empty().append('<option value="">Seleziona armadio...</option>');
+
+                    if (selectedPavilion && pavilionData[selectedPavilion]) {
+                        // Popola rooms
+                        pavilionData[selectedPavilion].rooms.forEach(room => {
+                            if (room) $room.append(`<option value="${room}">${room}</option>`);
+                        });
+
+                        // Popola cabinets
+                        pavilionData[selectedPavilion].cabinets.forEach(cabinet => {
+                            if (cabinet) $cabinet.append(`<option value="${cabinet}">${cabinet}</option>`);
+                        });
+                    }
+
+                    $room.trigger('change');
+                    $cabinet.trigger('change');
+                });
+            }
+
+            function addEventListeners(clone, index) {
+                // Event listener per rimuovere prodotto
+                clone.querySelector('.remove-product-btn').addEventListener('click', function () {
+                    this.closest('.product-card').remove();
+                    updateProductsCount();
+                    updateRemoveButtons();
+                    renumberProducts();
+                });
+
+                // Event listener per upload immagine
+                const uploadBox = clone.querySelector('.upload-box');
+                const imageInput = clone.querySelector('.image-input');
+                const imagePreview = clone.querySelector('.image-preview');
+                const uploadPlaceholder = clone.querySelector('.upload-placeholder');
+                const imagePathInput = clone.querySelector('.image-path-input');
+
+                uploadBox.addEventListener('click', () => imageInput.click());
+
+                imageInput.addEventListener('change', function () {
+                    const file = this.files[0];
+                    if (file) {
+                        uploadImage(file, imagePreview, uploadPlaceholder, imagePathInput);
+                    }
+                });
+
+                // Event listener per rimuovere immagine
+                clone.querySelector('.remove-image-btn').addEventListener('click', function () {
+                    imagePreview.style.display = 'none';
+                    uploadPlaceholder.style.display = 'block';
+                    imagePathInput.value = '';
+                    imageInput.value = '';
+                });
+
+                // Event listeners per i bottoni "aggiungi"
+                clone.querySelector('.add-category-btn').addEventListener('click', () => {
+                    $('#newCategoryModal').modal('show');
+                });
+
+                clone.querySelector('.add-project-btn').addEventListener('click', () => {
+                    $('#newProjectModal').modal('show');
+                });
+
+                clone.querySelector('.add-location-btn').addEventListener('click', () => {
+                    $('#newLocationModal').modal('show');
+                });
+            }
+
+            function setupModals() {
+                // Modal Nuova Categoria
+                $('#newCategoryForm').on('submit', function (e) {
+                    e.preventDefault();
+                    const categoryName = $('#categoryName').val().trim();
+
+                    if (!categoryName) {
+                        alert('Inserisci il nome della categoria');
+                        return;
+                    }
+
+                    // Aggiungi la categoria a tutti i select delle categorie
+                    $('.categories-select').each(function () {
+                        if (!$(this).find(`option[value="${categoryName}"]`).length) {
+                            $(this).append(`<option value="${categoryName}">${categoryName}</option>`);
+                        }
+                    });
+
+                    $('#newCategoryModal').modal('hide');
+                    $('#categoryName').val('');
+                    showSuccessMessage('Categoria aggiunta con successo!');
+                });
+
+                // Modal Nuovo Progetto
+                $('#newProjectForm').on('submit', function (e) {
+                    e.preventDefault();
+                    const projectName = $('#projectName').val().trim();
+
+                    if (!projectName) {
+                        alert('Inserisci il nome del progetto');
+                        return;
+                    }
+
+                    // Aggiungi il progetto a tutti i select dei progetti
+                    $('.project-select').each(function () {
+                        if (!$(this).find(`option[value="${projectName}"]`).length) {
+                            $(this).append(`<option value="${projectName}">${projectName}</option>`);
+                        }
+                    });
+
+                    $('#newProjectModal').modal('hide');
+                    $('#projectName').val('');
+                    $('#projectFunding').val('');
+                    showSuccessMessage('Progetto aggiunto con successo!');
+                });
+
+                // Modal Nuova Posizione
+                $('#newLocationForm').on('submit', function (e) {
+                    e.preventDefault();
+                    const pavilion = $('#locationPavilion').val().trim();
+                    const room = $('#locationRoom').val().trim();
+                    const cabinet = $('#locationCabinet').val().trim();
+
+                    if (!pavilion) {
+                        alert('Inserisci almeno il padiglione');
+                        return;
+                    }
+
+                    // Aggiungi ai dati delle location
+                    if (!pavilionData[pavilion]) {
+                        pavilionData[pavilion] = { rooms: [], cabinets: [] };
+                    }
+
+                    if (room && !pavilionData[pavilion].rooms.includes(room)) {
+                        pavilionData[pavilion].rooms.push(room);
+                    }
+
+                    if (cabinet && !pavilionData[pavilion].cabinets.includes(cabinet)) {
+                        pavilionData[pavilion].cabinets.push(cabinet);
+                    }
+
+                    // Aggiorna tutti i dropdown dei padiglioni
+                    $('.pavilion-select').each(function () {
+                        if (!$(this).find(`option[value="${pavilion}"]`).length) {
+                            $(this).append(`<option value="${pavilion}">${pavilion}</option>`);
+                        }
+                    });
+
+                    $('#newLocationModal').modal('hide');
+                    $('#locationPavilion').val('');
+                    $('#locationRoom').val('');
+                    $('#locationCabinet').val('');
+                    showSuccessMessage('Posizione aggiunta con successo!');
+                });
+            }
+
+            function showSuccessMessage(message) {
+                // Crea un toast/notification
+                const toast = $(`
+            <div class="alert alert-success alert-dismissible fade show position-fixed" style="top: 20px; right: 20px; z-index: 9999;">
+                ${message}
+                <button type="button" class="close" data-dismiss="alert">
+                    <span>&times;</span>
+                </button>
+            </div>
+        `);
+
+                $('body').append(toast);
+
+                setTimeout(() => {
+                    toast.alert('close');
+                }, 3000);
+            }
+
+            function uploadImage(file, previewElement, placeholderElement, pathInput) {
+                // Validazione file
+                if (!file.type.match('image.*')) {
+                    alert('Seleziona un file immagine valido');
+                    return;
+                }
+
+                if (file.size > 5 * 1024 * 1024) { // 5MB
+                    alert('Il file deve essere inferiore a 5MB');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('image', file);
+
+                // Mostra loading
+                placeholderElement.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Caricamento...</div>';
+
+                fetch('/upload_product_image', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Mostra preview
+                            previewElement.querySelector('img').src = data.image_path;
+                            previewElement.style.display = 'block';
+                            placeholderElement.style.display = 'none';
+                            pathInput.value = data.image_path;
+                        } else {
+                            alert(data.message || 'Errore durante il caricamento');
+                            resetUploadPlaceholder(placeholderElement);
+                        }
+                    })
+                    .catch(error => {
+                        alert('Errore durante il caricamento dell\'immagine');
+                        resetUploadPlaceholder(placeholderElement);
+                    });
+            }
+
+            function resetUploadPlaceholder(placeholderElement) {
+                placeholderElement.innerHTML = `
+            <div class="upload-box text-center p-4 border border-dashed rounded">
+                <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                <p class="text-muted mb-2">Clicca per caricare un'immagine</p>
+                <small class="text-muted">PNG, JPG, GIF fino a 5MB</small>
+            </div>
+        `;
+            }
+
+            function updateProductsCount() {
+                const count = document.querySelectorAll('.product-card').length;
+                document.getElementById('products-count').value = count;
+            }
+
+            function updateRemoveButtons() {
+                const productCards = document.querySelectorAll('.product-card');
+                productCards.forEach((card, index) => {
+                    const removeBtn = card.querySelector('.remove-product-btn');
+                    if (productCards.length <= 1) {
+                        removeBtn.style.display = 'none';
+                    } else {
+                        removeBtn.style.display = 'block';
+                    }
+                });
+            }
+
+            function renumberProducts() {
+                const productCards = document.querySelectorAll('.product-card');
+                productCards.forEach((card, index) => {
+                    // Aggiorna il numero visualizzato
+                    card.querySelector('.product-number').textContent = index + 1;
+
+                    // Aggiorna l'indice del prodotto
+                    card.setAttribute('data-product-index', index);
+
+                    // Aggiorna i nomi degli input
+                    const inputs = card.querySelectorAll('input, textarea, select');
+                    inputs.forEach(input => {
+                        if (input.name) {
+                            const baseName = input.name.replace(/_\d+/, '');
+                            if (input.name.includes('[]')) {
+                                input.name = `${baseName}_${index}[]`;
+                            } else {
+                                input.name = `${baseName}_${index}`;
+                            }
+                        }
+                    });
+                });
+            }
+
+            // Validazione avanzata prima di inviare il form
+            document.getElementById('multiple-products-form').addEventListener('submit', function (e) {
+                const productCards = document.querySelectorAll('.product-card');
+                let hasErrors = false;
+                let errorMessage = '';
+
+                productCards.forEach((card, index) => {
+                    const productNumber = index + 1;
+
+                    // Verifica campi obbligatori
+                    const name = card.querySelector('input[name*="name_"]').value.trim();
+                    const code = card.querySelector('input[name*="code_"]').value.trim();
+                    const pavilion = card.querySelector('select[name*="pavilion_"]').value;
+                    const project = card.querySelector('select[name*="project_"]').value;
+                    const quantity = card.querySelector('input[name*="quantity_"]').value;
+
+                    if (!name) {
+                        errorMessage += `Prodotto ${productNumber}: Nome obbligatorio\n`;
+                        hasErrors = true;
+                    }
+                    if (!code) {
+                        errorMessage += `Prodotto ${productNumber}: Codice obbligatorio\n`;
+                        hasErrors = true;
+                    }
+                    if (!pavilion) {
+                        errorMessage += `Prodotto ${productNumber}: Padiglione obbligatorio\n`;
+                        hasErrors = true;
+                    }
+                    if (!project) {
+                        errorMessage += `Prodotto ${productNumber}: Progetto obbligatorio\n`;
+                        hasErrors = true;
+                    }
+                    if (!quantity || parseInt(quantity) <= 0) {
+                        errorMessage += `Prodotto ${productNumber}: Quantità deve essere maggiore di 0\n`;
+                        hasErrors = true;
+                    }
+                });
+
+                if (hasErrors) {
+                    e.preventDefault();
+                    alert('Errori di validazione:\n\n' + errorMessage);
+                    return false;
+                }
+
+                // Conferma finale
+                const productCount = productCards.length;
+                if (!confirm(`Sei sicuro di voler salvare ${productCount} prodotto/i?`)) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        });
+    </script>
+
+</body>
+
+</html>
