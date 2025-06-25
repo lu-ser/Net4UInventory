@@ -1,163 +1,175 @@
-
 <!doctype html>
 <html lang="en">
-  <head>
+
+<head>
     <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-      <title>POS Dash | Responsive Bootstrap 4 Admin Dashboard Template</title>
-      
-      <!-- Favicon -->
-      <link rel="shortcut icon" href="../../static/images/favicon.ico" />
-      <link rel="stylesheet" href="../../static/css/backend-plugin.min.css">
-      <link rel="stylesheet" href="../../static/css/backend.css?v=1.0.0">
-      <link rel="stylesheet" href="../../static/vendor/@fortawesome/fontawesome-free/css/all.min.css">
-      <link rel="stylesheet" href="../../static/vendor/line-awesome/dist/line-awesome/css/line-awesome.min.css">
-      <link rel="stylesheet" href="../../static/vendor/remixicon/fonts/remixicon.css">  </head>
-  <body class="  ">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>POS Dash | Responsive Bootstrap 4 Admin Dashboard Template</title>
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="../../static/images/favicon.ico" />
+    <link rel="stylesheet" href="../../static/css/backend-plugin.min.css">
+    <link rel="stylesheet" href="../../static/css/backend.css?v=1.0.0">
+    <link rel="stylesheet" href="../../static/vendor/@fortawesome/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="../../static/vendor/line-awesome/dist/line-awesome/css/line-awesome.min.css">
+    <link rel="stylesheet" href="../../static/vendor/remixicon/fonts/remixicon.css">
+</head>
+
+<body class="  ">
     <!-- loader Start -->
     <div id="loading">
-          <div id="loading-center">
-          </div>
+        <div id="loading-center">
+        </div>
     </div>
     <!-- loader END -->
     <!-- Wrapper Start -->
     <div class="wrapper">
-        {% include "./backend/sidebar.html" %} 
+        {% include "./backend/sidebar.html" %}
         {%include "./backend/navbar.html" %}
 
-      <div class="modal fade" id="new-order" tabindex="-1" role="dialog" aria-hidden="true">
-          <div class="modal-dialog modal-dialog-centered" role="document">
-              <div class="modal-content">
-                  <div class="modal-body">
-                      <div class="popup text-left">
-                          <h4 class="mb-3">New Order</h4>
-                          <div class="content create-workform bg-body">
-                              <div class="pb-3">
-                                  <label class="mb-2">Email</label>
-                                  <input type="text" class="form-control" placeholder="Enter Name or Email">
-                              </div>
-                              <div class="col-lg-12 mt-4">
-                                  <div class="d-flex flex-wrap align-items-ceter justify-content-center">
-                                      <div class="btn btn-primary mr-4" data-dismiss="modal">Cancel</div>
-                                      <div class="btn btn-outline-primary" data-dismiss="modal">Create</div>
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
-                  </div>
-              </div>
-          </div>
-      </div>      <div class="content-page">
-     <div class="container-fluid">
-        <div class="row">
-            <div class="col-lg-12">
-                <div class="d-flex flex-wrap align-items-center justify-content-between mb-4">
-                    <div>
-                        <h4 class="mb-3">Loan Requests</h4>
+        <div class="modal fade" id="new-order" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-body">
+                        <div class="popup text-left">
+                            <h4 class="mb-3">New Order</h4>
+                            <div class="content create-workform bg-body">
+                                <div class="pb-3">
+                                    <label class="mb-2">Email</label>
+                                    <input type="text" class="form-control" placeholder="Enter Name or Email">
+                                </div>
+                                <div class="col-lg-12 mt-4">
+                                    <div class="d-flex flex-wrap align-items-ceter justify-content-center">
+                                        <div class="btn btn-primary mr-4" data-dismiss="modal">Cancel</div>
+                                        <div class="btn btn-outline-primary" data-dismiss="modal">Create</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-lg-12">
-                <div class="row mb-3">
-                    <div class="col-lg-4">
-                        <input type="text" id="searchInput" class="form-control" placeholder="Search...">
-                    
-                </div>
-            </div>
-                    <div class="table-responsive rounded mb-3">
-                        
-                        <table class="data-table table mb-0 tbl-server-info">
-                            <thead class="bg-white text-uppercase">
-                                <tr class="ligth ligth-data">
-                                    <th>Product Name</th>
-                                    <th># Items</th>
-                                    <th>Start Date</th>
-                                    <th>Termination Date</th>
-                                    <th>Managers</th>
-                                    <th>Request Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody class="ligth-body">
-                                {% for order in outgoing_requests %}
-                                {% if order.product.owner_id != current_user.id %}
-                                <tr>
-                                    <td>{{ order.product.name }}</td>
-                                    <td>{{ order.quantity }}</td>
-                                    <td>{{ order.start_date.strftime('%Y-%m-%d') }}</td>
-                                    <td>{{ order.end_date.strftime('%Y-%m-%d') }}</td>
-                                    <td>
-                                        {% for manager in order.product.managers %}
-                                        <span class="manager-initial" data-toggle="tooltip" data-placement="top" title="{{ manager.name }} {{ manager.surname }} ({{ manager.email }})">
-                                            {{ manager.name[0] }}{{ manager.surname[0] }},
-                                        </span>
-                                        {% endfor %}
-                                    </td>
-                                    <td>
-                                        {% if order.status == 'pending' %}
-                                        <div class="badge badge-warning">Pending</div>
-                                        {% elif order.status == 'approved' %}
-                                        <div class="badge badge-info">Approved</div>
-                                        {% elif order.status == 'rejected' %}
-                                        <div class="badge badge-danger">Rejected</div>
-                                        {% elif order.status == 'returned' %}
-                                        <div class="badge badge-success">Returned</div>
-                                        {% elif order.status == 'in_review' %}
-                                        <div class="badge badge-primary">In Review</div>
-                                        {% elif order.status == 'cancelled' %}
-                                        <div class="badge badge-secondary">Cancelled</div>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="d-flex align-items-center list-action">
-                                            <a class="badge bg-info mr-2" data-toggle="tooltip" data-placement="top" title="View Details"
-                                                href="#" onclick="showOrderDetails({{ order.id }})"><i class="ri-eye-line mr-0"></i></a>
+        </div>
+        <div class="content-page">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between mb-4">
+                            <div>
+                                <h4 class="mb-3">Loan Requests</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-12">
+                        <div class="row mb-3">
+                            <div class="col-lg-4">
+                                <input type="text" id="searchInput" class="form-control" placeholder="Search...">
+
+                            </div>
+                        </div>
+                        <div class="table-responsive rounded mb-3">
+
+                            <table class="data-table table mb-0 tbl-server-info">
+                                <thead class="bg-white text-uppercase">
+                                    <tr class="ligth ligth-data">
+                                        <th>Product Name</th>
+                                        <th># Items</th>
+                                        <th>Start Date</th>
+                                        <th>Termination Date</th>
+                                        <th>Managers</th>
+                                        <th>Request Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="ligth-body">
+                                    {% for order in outgoing_requests %}
+                                    {% if order.product.owner_id != current_user.id %}
+                                    <tr>
+                                        <td>{{ order.product.name }}</td>
+                                        <td>{{ order.quantity }}</td>
+                                        <td>{{ order.start_date.strftime('%Y-%m-%d') }}</td>
+                                        <td>{{ order.end_date.strftime('%Y-%m-%d') }}</td>
+                                        <td>
+                                            {% for manager in order.product.managers %}
+                                            <span class="manager-initial" data-toggle="tooltip" data-placement="top"
+                                                title="{{ manager.name }} {{ manager.surname }} ({{ manager.email }})">
+                                                {{ manager.name[0] }}{{ manager.surname[0] }},
+                                            </span>
+                                            {% endfor %}
+                                        </td>
+                                        <td>
                                             {% if order.status == 'pending' %}
-                                            <a class="badge bg-warning mr-2" data-toggle="tooltip" data-placement="top" title="Cancel"
-                                                href="#" onclick="cancelRequest({{ order.id }})"><i class="ri-delete-bin-line mr-0"></i></a>
+                                            <div class="badge badge-warning">Pending</div>
                                             {% elif order.status == 'approved' %}
-                                            <a class="badge bg-primary mr-2" data-toggle="tooltip" data-placement="top" title="Mark as Returned"
-                                                href="#" onclick="markAsReturned({{ order.id }})"><i class="ri-check-line mr-0"></i></a>
+                                            <div class="badge badge-info">Approved</div>
+                                            {% elif order.status == 'rejected' %}
+                                            <div class="badge badge-danger">Rejected</div>
+                                            {% elif order.status == 'returned' %}
+                                            <div class="badge badge-success">Returned</div>
+                                            {% elif order.status == 'in_review' %}
+                                            <div class="badge badge-primary">In Review</div>
+                                            {% elif order.status == 'cancelled' %}
+                                            <div class="badge badge-secondary">Cancelled</div>
                                             {% endif %}
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endif %}
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            
-            </div>
-            
-            <!-- Order Details Modal -->
-            <div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="orderDetailsModalLabel">Order Details</h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            <p><strong>Product Name:</strong> <span id="modalProductName"></span></p>
-                            <p><strong>Quantity:</strong> <span id="modalQuantity"></span></p>
-                            <p><strong>Start Date:</strong> <span id="modalStartDate"></span></p>
-                            <p><strong>End Date:</strong> <span id="modalEndDate"></span></p>
-                            <p><strong>Location:</strong> <span id="modalLocation"></span></p>
-                            <p><strong>Description:</strong> <span id="modalDescription"></span></p>
-                            <p><strong>Managers:</strong> <span id="modalManagers"></span></p>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center list-action">
+                                                <a class="badge bg-info mr-2" data-toggle="tooltip" data-placement="top"
+                                                    title="View Details" href="#"
+                                                    onclick="showOrderDetails({{ order.id }})"><i
+                                                        class="ri-eye-line mr-0"></i></a>
+                                                {% if order.status == 'pending' %}
+                                                <a class="badge bg-warning mr-2" data-toggle="tooltip"
+                                                    data-placement="top" title="Cancel" href="#"
+                                                    onclick="cancelRequest({{ order.id }})"><i
+                                                        class="ri-delete-bin-line mr-0"></i></a>
+                                                {% elif order.status == 'approved' %}
+                                                <a class="badge bg-primary mr-2" data-toggle="tooltip"
+                                                    data-placement="top" title="Mark as Returned" href="#"
+                                                    onclick="openReturnWithCommentModal({{ order.id }}, '{{ order.product.name }}')">
+                                                    <i class="ri-check-line mr-0"></i>
+                                                </a>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
+
+                </div>
+
+                <!-- Order Details Modal -->
+                <div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="orderDetailsModalLabel">Order Details</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <p><strong>Product Name:</strong> <span id="modalProductName"></span></p>
+                                <p><strong>Quantity:</strong> <span id="modalQuantity"></span></p>
+                                <p><strong>Start Date:</strong> <span id="modalStartDate"></span></p>
+                                <p><strong>End Date:</strong> <span id="modalEndDate"></span></p>
+                                <p><strong>Location:</strong> <span id="modalLocation"></span></p>
+                                <p><strong>Description:</strong> <span id="modalDescription"></span></p>
+                                <p><strong>Managers:</strong> <span id="modalManagers"></span></p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            </div>
-    
+
         </div>
-        </div>
-        <!-- Page end  -->
+    </div>
+    <!-- Page end  -->
     </div>
     <!-- Modal Edit -->
     <div class="modal fade" id="edit-note" tabindex="-1" role="dialog" aria-hidden="true">
@@ -165,19 +177,21 @@
             <div class="modal-content">
                 <div class="modal-body">
                     <div class="popup text-left">
-                        <div class="media align-items-top justify-content-between">                            
+                        <div class="media align-items-top justify-content-between">
                             <h3 class="mb-3">Product</h3>
                             <div class="btn-cancel p-0" data-dismiss="modal"><i class="las la-times"></i></div>
                         </div>
                         <div class="content edit-notes">
                             <div class="card card-transparent card-block card-stretch event-note mb-0">
                                 <div class="card-body px-0 bukmark">
-                                    <div class="d-flex align-items-center justify-content-between pb-2 mb-3 border-bottom">                                                    
+                                    <div
+                                        class="d-flex align-items-center justify-content-between pb-2 mb-3 border-bottom">
                                         <div class="quill-tool">
                                         </div>
                                     </div>
                                     <div id="quill-toolbar1">
-                                        <p>Virtual Digital Marketing Course every week on Monday, Wednesday and Saturday.Virtual Digital Marketing Course every week on Monday</p>
+                                        <p>Virtual Digital Marketing Course every week on Monday, Wednesday and
+                                            Saturday.Virtual Digital Marketing Course every week on Monday</p>
                                     </div>
                                 </div>
                                 <div class="card-footer border-0">
@@ -193,11 +207,11 @@
             </div>
         </div>
     </div>
-      </div>
+    </div>
     </div>
     <!-- Wrapper End-->
     <footer class="iq-footer">
-            <div class="container-fluid">
+        <div class="container-fluid">
             <div class="card">
                 <div class="card-body">
                     <div class="row">
@@ -208,37 +222,171 @@
                             </ul>
                         </div>
                         <div class="col-lg-6 text-right">
-                            <span class="mr-1"><script>document.write(new Date().getFullYear())</script>©</span> <a href="#" class="">POS Dash</a>.
+                            <span class="mr-1">
+                                <script>document.write(new Date().getFullYear())</script>©
+                            </span> <a href="#" class="">POS Dash</a>.
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+        <div class="modal fade" id="returnWithCommentModal" tabindex="-1" role="dialog"
+            aria-labelledby="returnWithCommentModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="returnWithCommentModalLabel">
+                            <i class="ri-check-line"></i> Conferma Restituzione
+                        </h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <form id="returnWithCommentForm">
+                        <div class="modal-body">
+                            <input type="hidden" id="loanIdForReturn" name="loan_id" value="">
+
+                            <div class="mb-3">
+                                <p>Stai per confermare la restituzione del prodotto <strong
+                                        id="productNameForReturn"></strong>.</p>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="commentText">
+                                    <i class="ri-chat-3-line"></i> Commento (opzionale)
+                                </label>
+                                <textarea class="form-control" id="commentText" name="comment_text" rows="3"
+                                    placeholder="Scrivi qui il tuo commento sull'esperienza con questo prodotto..."></textarea>
+                                <small class="form-text text-muted">Condividi la tua esperienza per aiutare altri utenti
+                                    e il proprietario del prodotto.</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="rating">
+                                    <i class="ri-star-line"></i> Valutazione (opzionale)
+                                </label>
+                                <div class="rating-input">
+                                    <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                                        <label class="btn btn-outline-warning">
+                                            <input type="radio" name="rating" value="1"> 1 ⭐
+                                        </label>
+                                        <label class="btn btn-outline-warning">
+                                            <input type="radio" name="rating" value="2"> 2 ⭐
+                                        </label>
+                                        <label class="btn btn-outline-warning">
+                                            <input type="radio" name="rating" value="3"> 3 ⭐
+                                        </label>
+                                        <label class="btn btn-outline-warning">
+                                            <input type="radio" name="rating" value="4"> 4 ⭐
+                                        </label>
+                                        <label class="btn btn-outline-warning">
+                                            <input type="radio" name="rating" value="5"> 5 ⭐
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Annulla</button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="ri-check-line"></i> Conferma Restituzione
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </footer>
+    <script>
+        function openReturnWithCommentModal(orderId, productName = null) {
+            // Se il nome del prodotto non è fornito, prova a estrarlo dal DOM
+            if (!productName) {
+                // Cerca il nome del prodotto nella riga corrispondente
+                const productElement = document.querySelector(`tr[data-order-id="${orderId}"] td:first-child`);
+                productName = productElement ? productElement.textContent.trim() : 'Prodotto';
+            }
+
+            document.getElementById('loanIdForReturn').value = orderId;
+            document.getElementById('productNameForReturn').textContent = productName;
+
+            // Reset form
+            document.getElementById('returnWithCommentForm').reset();
+
+            // Show modal - Bootstrap 4
+            $('#returnWithCommentModal').modal('show');
+        }
+
+        // Mantieni la funzione originale per compatibilità
+        function markAsReturned(orderId) {
+            openReturnWithCommentModal(orderId);
+        }
+
+        // Gestione invio form
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('returnWithCommentForm');
+            if (form) {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+
+                    const formData = new FormData(this);
+                    const orderId = formData.get('loan_id');
+                    const submitButton = this.querySelector('button[type="submit"]');
+
+                    // Disabilita il bottone durante l'invio
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = '<i class="ri-loader-line"></i> Invio in corso...';
+
+                    fetch(`/mark_as_returned_with_comment/${orderId}`, {
+                        method: 'POST',
+                        body: formData
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                alert(data.message);
+                                $('#returnWithCommentModal').modal('hide');
+                                location.reload();
+                            } else {
+                                alert('Errore: ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Si è verificato un errore. Riprova.');
+                        })
+                        .finally(() => {
+                            // Riabilita il bottone
+                            submitButton.disabled = false;
+                            submitButton.innerHTML = '<i class="ri-check-line"></i> Conferma Restituzione';
+                        });
+                });
+            }
+        });
+    </script>
     <!-- Backend Bundle JavaScript -->
     <script src="../../static/js/backend-bundle.min.js"></script>
-    
+
     <!-- Table Treeview JavaScript -->
     <script src="../../static/js/table-treeview.js"></script>
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             const searchInput = document.getElementById('searchInput');
             const table = document.querySelector('.data-table');
             const rows = table.querySelectorAll('tbody tr');
-    
-            searchInput.addEventListener('keyup', function() {
+
+            searchInput.addEventListener('keyup', function () {
                 const query = searchInput.value.toLowerCase();
-    
-                rows.forEach(function(row) {
+
+                rows.forEach(function (row) {
                     const cells = row.querySelectorAll('td');
                     let match = false;
-    
-                    cells.forEach(function(cell) {
+
+                    cells.forEach(function (cell) {
                         if (cell.textContent.toLowerCase().includes(query)) {
                             match = true;
                         }
                     });
-    
+
                     if (match) {
                         row.style.display = '';
                     } else {
@@ -252,12 +400,12 @@
         $(function () {
             $('[data-toggle="tooltip"]').tooltip();
         });
-    
+
         function showOrderDetails(orderId) {
             $.ajax({
                 url: `/get_loan_details/${orderId}`,
                 type: 'GET',
-                success: function(response) {
+                success: function (response) {
                     $('#modalProductName').text(response.product_name);
                     $('#modalQuantity').text(response.quantity);
                     $('#modalStartDate').text(response.start_date);
@@ -265,12 +413,12 @@
                     $('#modalLocation').text(response.location);
                     $('#modalDescription').text(response.description);
                     $('#modalManagers').empty();
-                    response.managers.forEach(function(manager) {
+                    response.managers.forEach(function (manager) {
                         $('#modalManagers').append(`${manager.name} ${manager.surname} (${manager.email})<br>`);
                     });
                     $('#orderDetailsModal').modal('show');
                 },
-                error: function(error) {
+                error: function (error) {
                     console.log(error);
                     alert('Failed to fetch order details.');
                 }
@@ -279,12 +427,12 @@
     </script>
     <!-- Chart Custom JavaScript -->
     <script src="../../static/js/customizer.js"></script>
-    
+
     <!-- Chart Custom JavaScript -->
     <script async src="../../static/js/chart-custom.js"></script>
     <script>
         function cancelRequest(orderId) {
-            $.post('/cancel_request/' + orderId, function(response) {
+            $.post('/cancel_request/' + orderId, function (response) {
                 if (response.status === 'success') {
                     location.reload();
                 } else {
@@ -292,9 +440,9 @@
                 }
             });
         }
-    
+
         function restoreUnavailable(orderId) {
-            $.post('/restore_unavailable/' + orderId, function(response) {
+            $.post('/restore_unavailable/' + orderId, function (response) {
                 if (response.status === 'success') {
                     location.reload();
                 } else {
@@ -302,18 +450,17 @@
                 }
             });
         }
-    
+
         function markAsReturned(orderId) {
-            $.post('/mark_as_returned/' + orderId, function(response) {
-                if (response.status === 'success') {
-                    location.reload();
-                } else {
-                    alert(response.message);
-                }
-            });
+            // Estrai il nome del prodotto dal DOM (adatta alla tua struttura)
+            const productElement = document.querySelector(`[data-order-id="${orderId}"] .product-name`);
+            const productName = productElement ? productElement.textContent : 'Prodotto';
+
+            openReturnWithCommentModal(orderId, productName);
         }
     </script>
     <!-- app JavaScript -->
     <script src="../../static/js/app.js"></script>
-  </body>
+</body>
+
 </html>

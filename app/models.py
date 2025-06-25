@@ -94,7 +94,7 @@ class Loan(db.Model):
     new_end_date = db.Column(db.DateTime, nullable=True)
     borrower = db.relationship('User', foreign_keys=[borrower_id], backref='borrowed_loans')
     manager = db.relationship('User', foreign_keys=[manager_id], backref='managed_loans')
-
+    has_comment = db.Column(db.Boolean, nullable=False, default=False, server_default='false')
     
 
 class ReminderNotification(db.Model):
@@ -112,3 +112,31 @@ class ReminderNotification(db.Model):
     __table_args__ = (
         db.UniqueConstraint('loan_id', 'reminder_type', name='unique_loan_reminder'),
     )
+
+
+class Comment(db.Model):
+    """Modello per i commenti sui prestiti al momento della restituzione"""
+    id = db.Column(db.Integer, primary_key=True)
+    loan_id = db.Column(db.Integer, db.ForeignKey('loan.id'), nullable=False)
+    borrower_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    
+    # Contenuto del commento
+    comment_text = db.Column(db.Text, nullable=False)
+    
+    # Valutazione opzionale (1-5 stelle)
+    rating = db.Column(db.Integer, nullable=True)  # Range 1-5
+    
+    # Timestamp
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Flag per indicare se è stato visto dal manager
+    seen_by_manager = db.Column(db.Boolean, default=False, nullable=False)
+    
+    # Relationships
+    loan = db.relationship('Loan', backref=db.backref('comments', cascade='all, delete-orphan'))
+    borrower = db.relationship('User', foreign_keys=[borrower_id], backref='comments_made')
+    product = db.relationship('Product', backref='comments')
+    
+    def __repr__(self):
+        return f'<Comment {self.id} for Loan {self.loan_id}>'

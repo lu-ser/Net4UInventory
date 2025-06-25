@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commenti - {{ product.name }}</title>
+
+    <!-- CSS esistenti del tuo progetto -->
+    <link rel="shortcut icon" href="../../static/images/favicon.ico" />
+    <link rel="stylesheet" href="../../static/css/backend-plugin.min.css">
+    <link rel="stylesheet" href="../../static/css/backend.css?v=1.0.0">
+    <link rel="stylesheet" href="../../static/vendor/remixicon/fonts/remixicon.css">
+
+    <style>
+        .comment-card {
+            border-left: 4px solid #007bff;
+            margin-bottom: 1.5rem;
+            transition: transform 0.2s ease;
+        }
+
+        .comment-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .rating-stars {
+            color: #ffc107;
+        }
+
+        .comment-text {
+            font-style: italic;
+            color: #495057;
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 3px solid #007bff;
+        }
+
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrapper">
+        {% include "./backend/sidebar.html" %}
+        {% include "./backend/navbar.html" %}
+
+        <div class="content-page">
+            <div class="container-fluid">
+
+                <!-- Header -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h4 class="mb-1">
+                                    <i class="ri-chat-3-line"></i> Commenti per {{ product.name }}
+                                </h4>
+                                <p class="text-muted mb-0">Codice: <strong>{{ product.unique_code }}</strong></p>
+                            </div>
+                            <a href="{{ url_for('main.requests_for_my_products') }}" class="btn btn-secondary">
+                                <i class="ri-arrow-left-line"></i> Torna ai Prestiti
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistiche -->
+                {% if total_comments > 0 %}
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card stats-card">
+                            <div class="card-body text-center">
+                                <div class="stat-number">{{ total_comments }}</div>
+                                <small>Commenti Totali</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% if average_rating %}
+                    <div class="col-md-4">
+                        <div class="card stats-card">
+                            <div class="card-body text-center">
+                                <div class="stat-number">{{ "%.1f"|format(average_rating) }}/5</div>
+                                <div class="rating-stars mb-1">
+                                    {% for i in range(1, 6) %}
+                                    {% if i <= average_rating %} <i class="ri-star-fill"></i>
+                                        {% else %}
+                                        <i class="ri-star-line"></i>
+                                        {% endif %}
+                                        {% endfor %}
+                                </div>
+                                <small>Valutazione Media</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card stats-card">
+                            <div class="card-body text-center">
+                                <div class="stat-number">{{ total_ratings }}</div>
+                                <small>Valutazioni</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Lista Commenti -->
+                <div class="row">
+                    <div class="col-12">
+                        {% if comments %}
+                        {% for comment in comments %}
+                        <div class="card comment-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            <i class="ri-user-line"></i>
+                                            {{ comment.borrower.name }} {{ comment.borrower.surname }}
+                                        </h6>
+                                        <small class="text-muted">
+                                            <i class="ri-calendar-line"></i>
+                                            {{ comment.created_at.strftime('%d/%m/%Y alle %H:%M') }}
+                                            • Prestito #{{ comment.loan_id }}
+                                        </small>
+                                    </div>
+                                    {% if comment.rating %}
+                                    <div class="rating-stars">
+                                        {% for i in range(1, 6) %}
+                                        {% if i <= comment.rating %} <i class="ri-star-fill"></i>
+                                            {% else %}
+                                            <i class="ri-star-line text-muted"></i>
+                                            {% endif %}
+                                            {% endfor %}
+                                            <small class="text-muted ml-1">({{ comment.rating }}/5)</small>
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="comment-text">
+                                    <i class="ri-quote-text text-primary"></i>
+                                    {{ comment.comment_text }}
+                                </div>
+
+                                {% if not comment.seen_by_manager %}
+                                <div class="mt-2">
+                                    <span class="badge badge-primary">Nuovo</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <div class="card">
+                            <div class="card-body text-center py-5">
+                                <i class="ri-chat-3-line text-muted" style="font-size: 4rem;"></i>
+                                <h5 class="mt-3 text-muted">Nessun commento ancora</h5>
+                                <p class="text-muted">Non ci sono ancora commenti per questo prodotto.</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="../../static/js/backend-bundle.min.js"></script>
+    <script src="../../static/js/app.js"></script>
+
+    <script>
+        // Segna automaticamente tutti i commenti come visti quando si apre la pagina
+        // (questo è già gestito lato server, ma aggiungiamo un feedback visivo)
+
+        $(document).ready(function () {
+            // Rimuovi i badge "Nuovo" dopo 3 secondi per dare feedback visivo
+            setTimeout(function () {
+                $('.badge.badge-primary').fadeOut(500);
+            }, 3000);
+
+            // Inizializza i tooltips se presenti
+            $('[data-toggle="tooltip"]').tooltip();
+        });
+    </script>
+</body>
+
+</html>

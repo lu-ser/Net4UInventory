@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template,session, redirect, url_for, flash, request, jsonify, current_app, get_flashed_messages
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
+from .models import Comment
 from werkzeug.utils import secure_filename
 from itsdangerous import URLSafeSerializer, URLSafeTimedSerializer, SignatureExpired, BadSignature
 import os
@@ -807,7 +808,15 @@ def loan_requests():
 @login_required
 def get_loan_details(loan_id):
     loan = Loan.query.get_or_404(loan_id)
-    if loan.borrower_id != current_user.id and loan.manager_id != current_user.id:
+    
+    # SOSTITUISCI QUESTA RIGA:
+    # if loan.borrower_id != current_user.id and loan.manager_id != current_user.id:
+    
+    # CON QUESTA (controllo più ampio):
+    if (loan.borrower_id != current_user.id and 
+        loan.manager_id != current_user.id and
+        loan.product.owner_id != current_user.id and 
+        current_user not in loan.product.managers):
         return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
 
     loan_details = {
@@ -1495,26 +1504,52 @@ def dashboard():
         .limit(10)
         .all()
     )
+    # Statistiche per i commenti (aggiungi prima del return render_template)
+    unread_comments_count = 0
+    recent_comments = []
+    total_comments_received = 0
 
-    # Additional statistics
-    total_products = Product.query.count()
-    active_loans = Loan.query.filter(Loan.end_date == None).count()
-    total_returns = Loan.query.filter(Loan.end_date != None).count()
-    
-    # Modifica qui: usiamo end_date invece di due_date
-    overdue_loans = Loan.query.filter(Loan.end_date != None, Loan.end_date < datetime.utcnow()).count()
+    if current_user:
+        # Commenti non letti sui propri prodotti
+        unread_comments_count = Comment.query.join(Product).filter(
+            (Product.owner_id == current_user.id) | 
+            (Product.managers.any(User.id == current_user.id))
+        ).filter(Comment.seen_by_manager == False).count()
+        
+        # Ultimi commenti ricevuti
+        recent_comments = Comment.query.join(Product).filter(
+            (Product.owner_id == current_user.id) | 
+            (Product.managers.any(User.id == current_user.id))
+        ).order_by(Comment.created_at.desc()).limit(3).all()
+        
+        # Totale commenti ricevuti sui propri prodotti
+        total_comments_received = Comment.query.join(Product).filter(
+            (Product.owner_id == current_user.id) | 
+            (Product.managers.any(User.id == current_user.id))
+        ).count()
 
-    messages = get_flashed_messages(with_categories=True)
-    return render_template('backend/dashboard.html', 
-                           latest_products=latest_products,
-                           latest_loans=latest_loans,
-                           latest_returns=latest_returns,
-                           top_loaned_products=top_loaned_products,
-                           total_products=total_products,
-                           active_loans=active_loans,
-                           total_returns=total_returns,
-                           overdue_loans=overdue_loans,
-                           messages=messages)
+        # Additional statistics
+        total_products = Product.query.count()
+        active_loans = Loan.query.filter(Loan.end_date == None).count()
+        total_returns = Loan.query.filter(Loan.end_date != None).count()
+        
+        # Modifica qui: usiamo end_date invece di due_date
+        overdue_loans = Loan.query.filter(Loan.end_date != None, Loan.end_date < datetime.utcnow()).count()
+
+        messages = get_flashed_messages(with_categories=True)
+        return render_template('backend/dashboard.html', 
+                            latest_products=latest_products,
+                            latest_loans=latest_loans,
+                            latest_returns=latest_returns,
+                            top_loaned_products=top_loaned_products,
+                            total_products=total_products,
+                            active_loans=active_loans,
+                            total_returns=total_returns,
+                            overdue_loans=overdue_loans,
+                            messages=messages,
+                            unread_comments_count=unread_comments_count,
+                            recent_comments=recent_comments,
+                            total_comments_received=total_comments_received)
 
 @main_blueprint.route('/admin/reminders/status')
 @login_required
@@ -2248,3 +2283,217 @@ def my_wishlist():
 def wishlist_count():
     """API per ottenere il conteggio wishlist (per badge nel menu)"""
     return jsonify({'count': len(current_user.wishlist)})
+
+@main_blueprint.route('/mark_as_returned_with_comment/<int:loan_id>', methods=['POST'])
+@login_required
+def mark_as_returned_with_comment(loan_id):
+    """Segna un prestito come ritornato con commento opzionale"""
+    loan = Loan.query.get_or_404(loan_id)
+    
+    if loan.status != 'approved':
+        return jsonify({'status': 'error', 'message': 'Only approved loans can be marked as returned'}), 400
+
+    if current_user.id != loan.borrower_id:
+        return jsonify({'status': 'error', 'message': 'You are not authorized to perform this action'}), 403
+
+    # Ottieni i dati del commento dalla richiesta
+    comment_text = request.form.get('comment_text', '').strip()
+    rating = request.form.get('rating')
+    
+    # Segna il prestito come in review
+    loan.status = 'in_review'
+    
+    # Se c'è un commento, crealo
+    if comment_text:
+        try:
+            rating_value = int(rating) if rating and rating.isdigit() and 1 <= int(rating) <= 5 else None
+        except (ValueError, TypeError):
+            rating_value = None
+            
+        comment = Comment(
+            loan_id=loan.id,
+            borrower_id=current_user.id,
+            product_id=loan.product_id,
+            comment_text=comment_text,
+            rating=rating_value
+        )
+        db.session.add(comment)
+        loan.has_comment = True  # Aggiungi questo campo al modello Loan
+    
+    db.session.commit()
+    
+    # Invia email di notifica al manager includendo il commento se presente
+    try:
+        managers_emails = []
+        if loan.product.owner:
+            managers_emails.append(loan.product.owner.email)
+        for manager in loan.product.managers:
+            if manager.email not in managers_emails:
+                managers_emails.append(manager.email)
+        
+        for manager_email in managers_emails:
+            send_email(
+                subject=f"Return Request - {loan.product.name}" + (" (with comment)" if comment_text else ""),
+                recipient=manager_email,
+                template='backend/return_request_notification',
+                borrower=current_user,
+                product=loan.product,
+                loan=loan,
+                comment=comment if comment_text else None,
+                return_date=datetime.now().strftime('%Y-%m-%d %H:%M')
+            )
+    except Exception as e:
+        print(f"Failed to send email: {str(e)}")
+    
+    success_message = 'Loan marked as returned successfully'
+    if comment_text:
+        success_message += ' with your comment'
+    success_message += ', awaiting manager review'
+    
+    return jsonify({'status': 'success', 'message': success_message})
+
+
+@main_blueprint.route('/view_loan_comments/<int:loan_id>')
+@login_required
+def view_loan_comments(loan_id):
+    """Visualizza i commenti di un prestito specifico"""
+    loan = Loan.query.get_or_404(loan_id)
+    
+    # Verifica autorizzazione: borrower, owner del prodotto o manager
+    if (current_user.id != loan.borrower_id and 
+        current_user.id != loan.product.owner_id and 
+        current_user not in loan.product.managers):
+        flash('You are not authorized to view these comments.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    comments = Comment.query.filter_by(loan_id=loan_id).order_by(Comment.created_at.desc()).all()
+    
+    # Se l'utente è manager, segna i commenti come visti
+    if (current_user.id == loan.product.owner_id or current_user in loan.product.managers):
+        for comment in comments:
+            if not comment.seen_by_manager:
+                comment.seen_by_manager = True
+        db.session.commit()
+    
+    # AGGIUNGI IL CALCOLO DELLE STATISTICHE
+    total_comments = len(comments)
+    rated_comments = [c for c in comments if c.rating is not None]
+    average_rating = sum(c.rating for c in rated_comments) / len(rated_comments) if rated_comments else None
+    total_ratings = len(rated_comments)
+    
+    return render_template('backend/loan_comments.html', 
+                         loan=loan, 
+                         comments=comments,
+                         product=loan.product,
+                         total_comments=total_comments,
+                         average_rating=average_rating,
+                         total_ratings=total_ratings)
+
+
+@main_blueprint.route('/dashboard_comments_summary')
+@login_required
+def dashboard_comments_summary():
+    """API endpoint per ottenere un riassunto dei commenti nel dashboard"""
+    
+    # Commenti non visti sui propri prodotti
+    unread_comments = Comment.query.join(Product).filter(
+        (Product.owner_id == current_user.id) | 
+        (Product.managers.any(User.id == current_user.id))
+    ).filter(Comment.seen_by_manager == False).count()
+    
+    # Ultimi commenti sui propri prodotti
+    recent_comments = Comment.query.join(Product).filter(
+        (Product.owner_id == current_user.id) | 
+        (Product.managers.any(User.id == current_user.id))
+    ).order_by(Comment.created_at.desc()).limit(5).all()
+    
+    return jsonify({
+        'unread_count': unread_comments,
+        'recent_comments': [{
+            'id': c.id,
+            'product_name': c.product.name,
+            'borrower_name': f"{c.borrower.name} {c.borrower.surname}",
+            'comment_text': c.comment_text[:100] + ('...' if len(c.comment_text) > 100 else ''),
+            'rating': c.rating,
+            'created_at': c.created_at.strftime('%d/%m/%Y %H:%M'),
+            'seen': c.seen_by_manager
+        } for c in recent_comments]
+    })
+
+@main_blueprint.route('/get_loan_comment_details/<int:loan_id>', methods=['GET'])
+@login_required
+def get_loan_comment_details(loan_id):
+    """API per ottenere i dettagli del commento di un prestito"""
+    loan = Loan.query.get_or_404(loan_id)
+    
+    # Verifica autorizzazioni (stesso controllo degli altri dettagli)
+    if (loan.borrower_id != current_user.id and 
+        loan.manager_id != current_user.id and
+        loan.product.owner_id != current_user.id and 
+        current_user not in loan.product.managers):
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
+    
+    # Cerca il commento per questo prestito
+    comment = Comment.query.filter_by(loan_id=loan_id).first()
+    
+    if not comment:
+        return jsonify({'status': 'error', 'message': 'No comment found for this loan'}), 404
+    
+    # Prepara la risposta
+    comment_data = {
+        'id': comment.id,
+        'comment_text': comment.comment_text,
+        'rating': comment.rating,
+        'created_at': comment.created_at.strftime('%d/%m/%Y alle %H:%M'),
+        'borrower_name': f"{comment.borrower.name} {comment.borrower.surname}",
+        'seen_by_manager': comment.seen_by_manager
+    }
+    
+    # Segna il commento come visto se l'utente è un manager
+    if (current_user.id == loan.product.owner_id or current_user in loan.product.managers):
+        if not comment.seen_by_manager:
+            comment.seen_by_manager = True
+            db.session.commit()
+    
+    return jsonify({
+        'status': 'success',
+        'comment': comment_data,
+        'product_name': loan.product.name,
+        'product_id': loan.product_id,
+        'loan_id': loan_id
+    })
+
+
+# OPZIONALE: Vista per ottenere tutti i commenti di un prodotto (se non l'hai già)
+@main_blueprint.route('/product_comments/<int:product_id>')
+@login_required  
+def product_comments(product_id):
+    """Visualizza tutti i commenti per un prodotto specifico"""
+    product = Product.query.get_or_404(product_id)
+    
+    # Verifica autorizzazione: owner del prodotto o manager
+    if (current_user.id != product.owner_id and current_user not in product.managers):
+        flash('You are not authorized to view these comments.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    # Ottieni tutti i commenti per questo prodotto
+    comments = Comment.query.filter_by(product_id=product_id).join(Loan).order_by(Comment.created_at.desc()).all()
+    
+    # Segna i commenti come visti se l'utente è manager
+    if current_user.id == product.owner_id or current_user in product.managers:
+        for comment in comments:
+            if not comment.seen_by_manager:
+                comment.seen_by_manager = True
+        db.session.commit()
+    
+    # Calcola statistiche
+    total_comments = len(comments)
+    rated_comments = [c for c in comments if c.rating is not None]
+    average_rating = sum(c.rating for c in rated_comments) / len(rated_comments) if rated_comments else None
+    
+    return render_template('backend/product_comments.html', 
+                         product=product, 
+                         comments=comments,
+                         total_comments=total_comments,
+                         average_rating=average_rating,
+                         total_ratings=len(rated_comments))

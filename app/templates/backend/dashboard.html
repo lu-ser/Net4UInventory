@@ -28,6 +28,33 @@
             --border-radius: 15px;
         }
 
+        .comment-preview {
+            transition: background-color 0.3s ease;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        .comment-preview:hover {
+            background-color: #f8f9fa;
+        }
+
+        .stat-card .stat-change {
+            margin-top: 0.5rem;
+        }
+
+        .comment-preview .btn {
+            margin-right: 0.5rem;
+        }
+
+        .comment-preview .btn:last-child {
+            margin-right: 0;
+        }
+
+        /* Badge per nuovi commenti */
+        .badge.bg-primary {
+            background-color: #007bff !important;
+        }
+
         body {
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -499,6 +526,20 @@
 
                         </div>
                     </div>
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="stat-card primary fade-in-up delay-4">
+                            <div class="stat-icon primary">
+                                <i class="ri-chat-3-line"></i>
+                            </div>
+                            <h3 class="stat-number">{{ unread_comments_count }}</h3>
+                            <p class="stat-label">Commenti Non Letti</p>
+                            {% if unread_comments_count > 0 %}
+                            <div class="stat-change positive">
+                                <i class="ri-arrow-up-line"></i> Nuovi
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
 
                 </div>
 
@@ -589,7 +630,79 @@
                         </div>
                     </div>
                 </div>
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">
+                                    <i class="ri-chat-3-line mr-2"></i>
+                                    Commenti Recenti sui Tuoi Prodotti
+                                </h5>
+                                <span class="badge bg-primary">{{ total_comments_received }} totali</span>
+                            </div>
+                            <div class="card-body">
+                                {% if recent_comments %}
+                                {% for comment in recent_comments %}
+                                <div class="comment-preview mb-3 pb-3 {% if not loop.last %}border-bottom{% endif %}">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <strong>{{ comment.borrower.name }} {{ comment.borrower.surname }}</strong>
+                                            <small class="text-muted ml-2">su <strong>{{ comment.product.name
+                                                    }}</strong></small>
+                                            {% if not comment.seen_by_manager %}
+                                            <span class="badge bg-primary ml-2">Nuovo</span>
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted">{{ comment.created_at.strftime('%d/%m/%Y %H:%M')
+                                            }}</small>
+                                    </div>
 
+                                    {% if comment.rating %}
+                                    <div class="mb-2">
+                                        {% for i in range(1, 6) %}
+                                        {% if i <= comment.rating %} <i class="ri-star-fill text-warning"></i>
+                                            {% else %}
+                                            <i class="ri-star-line text-muted"></i>
+                                            {% endif %}
+                                            {% endfor %}
+                                            <small class="text-muted ml-1">({{ comment.rating }}/5)</small>
+                                    </div>
+                                    {% endif %}
+
+                                    <p class="mb-2 text-truncate" style="max-width: 500px;">
+                                        {{ comment.comment_text }}
+                                    </p>
+
+                                    <div class="d-flex gap-2">
+                                        <a href="{{ url_for('main.view_loan_comments', loan_id=comment.loan_id) }}"
+                                            class="btn btn-sm btn-outline-primary">
+                                            <i class="ri-eye-line"></i> Visualizza
+                                        </a>
+                                        <a href="{{ url_for('main.product_comments', product_id=comment.product_id) }}"
+                                            class="btn btn-sm btn-outline-info">
+                                            <i class="ri-list-check"></i> Tutti i commenti del prodotto
+                                        </a>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                {% else %}
+                                <div class="text-center py-4">
+                                    <i class="ri-chat-3-line text-muted" style="font-size: 3rem;"></i>
+                                    <p class="text-muted mt-2">Nessun commento ancora ricevuto sui tuoi prodotti.</p>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            {% if total_comments_received > 0 %}
+                            <div class="card-footer text-center">
+                                <a href="#" class="btn btn-primary" onclick="showAllCommentsModal()">
+                                    <i class="ri-chat-4-line"></i> Gestisci Tutti i Commenti
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
                 <!-- Top 10 Most Loaned Products -->
                 <div class="row mb-4">
                     <div class="col-12 fade-in-up">
@@ -680,7 +793,39 @@
             </div>
         </div>
     </footer>
+    <script>
+        // Aggiorna il contatore dei commenti ogni 30 secondi
+        setInterval(function () {
+            fetch('/dashboard_comments_summary')
+                .then(response => response.json())
+                .then(data => {
+                    // Aggiorna il numero nella carta statistica
+                    const counterElement = document.querySelector('.stat-card .stat-number');
+                    if (counterElement && data.unread_count !== undefined) {
+                        counterElement.textContent = data.unread_count;
 
+                        // Aggiungi/rimuovi badge "Nuovi" basato sul conteggio
+                        const changeElement = counterElement.parentElement.querySelector('.stat-change');
+                        if (data.unread_count > 0) {
+                            if (!changeElement) {
+                                const newBadge = document.createElement('div');
+                                newBadge.className = 'stat-change positive';
+                                newBadge.innerHTML = '<i class="ri-arrow-up-line"></i> Nuovi';
+                                counterElement.parentElement.appendChild(newBadge);
+                            }
+                        } else if (changeElement) {
+                            changeElement.remove();
+                        }
+                    }
+                })
+                .catch(error => console.log('Error updating comments:', error));
+        }, 30000); // Ogni 30 secondi
+
+        function showAllCommentsModal() {
+            // Implementa una modal per mostrare tutti i commenti o reindirizza a una pagina dedicata
+            alert('Funzionalità per visualizzare tutti i commenti - da implementare secondo le tue preferenze');
+        }
+    </script>
     <!-- Scripts -->
     <script src="../../static/js/backend-bundle.min.js"></script>
     <script src="../../static/js/table-treeview.js"></script>

@@ -1,0 +1,30 @@
+<h2>Richiesta di Restituzione</h2>
+
+<p>Ciao,</p>
+
+<p><strong>{{ borrower.name }} {{ borrower.surname }}</strong> ha segnato come restituito il seguente prodotto:</p>
+
+<ul>
+    <li><strong>Prodotto:</strong> {{ product.name }}</li>
+    <li><strong>Codice:</strong> {{ product.unique_code }}</li>
+    <li><strong>Data restituzione:</strong> {{ return_date }}</li>
+</ul>
+
+{% if comment %}
+<div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #007bff; margin: 20px 0;">
+    <h4>💬 Commento del borrower:</h4>
+    <p>{{ comment.comment_text }}</p>
+
+    {% if comment.rating %}
+    <p>
+        <strong>Valutazione:</strong>
+        {% for i in range(1, 6) %}
+        {% if i <= comment.rating %}⭐{% endif %} {% endfor %} ({{ comment.rating }}/5) </p>
+            {% endif %}
+</div>
+{% endif %}
+
+<p>Per approvare o rifiutare la restituzione, accedi al sistema di gestione inventario.</p>
+
+<p>Cordiali saluti,<br>
+    Sistema Gestione Inventario</p>

@@ -1,0 +1,290 @@
+<!-- File: app/templates/backend/loan_comments.html -->
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commenti Prestito - {{ loan.product.name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4><i class="fas fa-comments"></i> Commenti per il Prestito</h4>
+                        <p class="mb-0 text-muted">
+                            Prodotto: <strong>{{ loan.product.name }}</strong> |
+                            Codice: <strong>{{ loan.product.unique_code }}</strong> |
+                            Borrower: <strong>{{ loan.borrower.name }} {{ loan.borrower.surname }}</strong>
+                        </p>
+                    </div>
+                    <div class="card-body">
+                        {% if comments %}
+                        {% for comment in comments %}
+                        <div class="comment-item border-bottom pb-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <strong>{{ comment.borrower.name }} {{ comment.borrower.surname }}</strong>
+                                    {% if comment.rating %}
+                                    <span class="ms-2">
+                                        {% for i in range(1, 6) %}
+                                        {% if i <= comment.rating %} <i class="fas fa-star text-warning"></i>
+                                            {% else %}
+                                            <i class="far fa-star text-muted"></i>
+                                            {% endif %}
+                                            {% endfor %}
+                                            <span class="text-muted">({{ comment.rating }}/5)</span>
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">{{ comment.created_at.strftime('%d/%m/%Y alle %H:%M')
+                                    }}</small>
+                            </div>
+                            <p class="mb-0">{{ comment.comment_text }}</p>
+                            {% if not comment.seen_by_manager and (current_user.id == loan.product.owner_id or
+                            current_user in loan.product.managers) %}
+                            <span class="badge bg-primary">Nuovo</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            Nessun commento presente per questo prestito.
+                        </div>
+                        {% endif %}
+
+                        <div class="mt-4">
+                            <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Torna al Dashboard
+                            </a>
+                            {% if current_user.id == loan.product.owner_id or current_user in loan.product.managers %}
+                            <a href="{{ url_for('main.product_comments', product_id=loan.product_id) }}"
+                                class="btn btn-info">
+                                <i class="fas fa-list"></i> Tutti i commenti del prodotto
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
+
+<!-- File: app/templates/backend/product_comments.html -->
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commenti Prodotto - {{ product.name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4><i class="fas fa-comments"></i> Tutti i Commenti per {{ product.name }}</h4>
+                        <p class="mb-0 text-muted">Codice: <strong>{{ product.unique_code }}</strong></p>
+                    </div>
+                    <div class="card-body">
+                        <!-- Statistiche -->
+                        {% if total_comments > 0 %}
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h5>{{ total_comments }}</h5>
+                                        <small class="text-muted">Commenti Totali</small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% if average_rating %}
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h5>
+                                            {{ "%.1f"|format(average_rating) }}/5
+                                            {% for i in range(1, 6) %}
+                                            {% if i <= average_rating %} <i class="fas fa-star text-warning"></i>
+                                                {% else %}
+                                                <i class="far fa-star text-muted"></i>
+                                                {% endif %}
+                                                {% endfor %}
+                                        </h5>
+                                        <small class="text-muted">Valutazione Media</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h5>{{ total_ratings }}</h5>
+                                        <small class="text-muted">Valutazioni</small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Lista commenti -->
+                        {% if comments %}
+                        {% for comment in comments %}
+                        <div class="comment-item border-bottom pb-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <strong>{{ comment.borrower.name }} {{ comment.borrower.surname }}</strong>
+                                    <small class="text-muted">(Prestito #{{ comment.loan_id }})</small>
+                                    {% if comment.rating %}
+                                    <span class="ms-2">
+                                        {% for i in range(1, 6) %}
+                                        {% if i <= comment.rating %} <i class="fas fa-star text-warning"></i>
+                                            {% else %}
+                                            <i class="far fa-star text-muted"></i>
+                                            {% endif %}
+                                            {% endfor %}
+                                            <span class="text-muted">({{ comment.rating }}/5)</span>
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">{{ comment.created_at.strftime('%d/%m/%Y alle %H:%M')
+                                    }}</small>
+                            </div>
+                            <p class="mb-0">{{ comment.comment_text }}</p>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            Nessun commento presente per questo prodotto.
+                        </div>
+                        {% endif %}
+
+                        <div class="mt-4">
+                            <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Torna al Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
+
+<!-- Modal per il commento al ritorno (da aggiungere al template dei prestiti) -->
+<div class="modal fade" id="returnWithCommentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-box-open"></i> Conferma Restituzione</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="returnWithCommentForm">
+                <div class="modal-body">
+                    <input type="hidden" id="loanIdForReturn" name="loan_id" value="">
+
+                    <div class="mb-3">
+                        <p>Stai per confermare la restituzione del prodotto <strong id="productNameForReturn"></strong>.
+                        </p>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="commentText" class="form-label">
+                            <i class="fas fa-comment"></i> Commento (opzionale)
+                        </label>
+                        <textarea class="form-control" id="commentText" name="comment_text" rows="3"
+                            placeholder="Scrivi qui il tuo commento sull'esperienza con questo prodotto..."></textarea>
+                        <div class="form-text">Condividi la tua esperienza per aiutare altri utenti e il proprietario
+                            del prodotto.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="rating" class="form-label">
+                            <i class="fas fa-star"></i> Valutazione (opzionale)
+                        </label>
+                        <div class="rating-input">
+                            <div class="btn-group" role="group">
+                                <input type="radio" class="btn-check" name="rating" id="rating1" value="1">
+                                <label class="btn btn-outline-warning" for="rating1">1 ⭐</label>
+
+                                <input type="radio" class="btn-check" name="rating" id="rating2" value="2">
+                                <label class="btn btn-outline-warning" for="rating2">2 ⭐</label>
+
+                                <input type="radio" class="btn-check" name="rating" id="rating3" value="3">
+                                <label class="btn btn-outline-warning" for="rating3">3 ⭐</label>
+
+                                <input type="radio" class="btn-check" name="rating" id="rating4" value="4">
+                                <label class="btn btn-outline-warning" for="rating4">4 ⭐</label>
+
+                                <input type="radio" class="btn-check" name="rating" id="rating5" value="5">
+                                <label class="btn btn-outline-warning" for="rating5">5 ⭐</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check"></i> Conferma Restituzione
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openReturnWithCommentModal(loanId, productName) {
+        document.getElementById('loanIdForReturn').value = loanId;
+        document.getElementById('productNameForReturn').textContent = productName;
+
+        // Reset form
+        document.getElementById('returnWithCommentForm').reset();
+
+        // Show modal
+        new bootstrap.Modal(document.getElementById('returnWithCommentModal')).show();
+    }
+
+    document.getElementById('returnWithCommentForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        const loanId = formData.get('loan_id');
+
+        fetch(`/mark_as_returned_with_comment/${loanId}`, {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(data.message);
+                    bootstrap.Modal.getInstance(document.getElementById('returnWithCommentModal')).hide();
+                    location.reload();
+                } else {
+                    alert('Errore: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Si è verificato un errore. Riprova.');
+            });
+    });
+</script>

@@ -103,7 +103,12 @@
                                         <div class="badge badge-primary">Return Pending Review</div>
                                         {% elif request.status == 'cancelled' %}
                                         <div class="badge badge-secondary">Cancelled</div>
-                                        {% endif %}
+                                        {% if request.has_comment %}
+                                        <br><small class="text-info mt-1">
+                                            <i class="ri-chat-3-line"></i> <em>Con commento</em>
+                                        </small>
+                                        {% endif %} {% endif %}
+
                                     </td>
                                     <td>
                                         <div class="d-flex align-items-center list-action">
@@ -133,6 +138,21 @@
                                                 title="Reject Return - Keep Active" href="#"
                                                 onclick="rejectReturn({{ request.id }})"><i
                                                     class="ri-arrow-go-back-line mr-0"></i></a>
+                                            {% endif %}
+                                            {% if request.has_comment %}
+                                            <a class="badge bg-info mr-2" data-toggle="tooltip" data-placement="top"
+                                                title="Visualizza Commento" href="#"
+                                                onclick="showCommentModal({{ request.id }})">
+                                                <i class="ri-chat-3-line mr-0"></i>
+                                            </a>
+                                            {% endif %}
+
+                                            <!-- Aggiungi un bottone per visualizzare i commenti -->
+                                            {% if request.status == 'returned' and request.has_comment %}
+                                            <a href="{{ url_for('main.view_loan_comments', loan_id=request.id) }}"
+                                                class="badge bg-info">
+                                                <i class="ri-chat-3-line"></i> Vedi Commenti
+                                            </a>
                                             {% endif %}
                                         </div>
                                     </td>
@@ -270,7 +290,45 @@
         </div>
     </div>
 
-
+    <div class="modal fade" id="commentModal" tabindex="-1" role="dialog" aria-labelledby="commentModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title" id="commentModalLabel">
+                        <i class="ri-chat-3-line"></i> Commento del Prestito
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Prodotto:</strong> <span id="commentProductName"></span></p>
+                            <p><strong>Utente:</strong> <span id="commentBorrowerName"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Data Commento:</strong> <span id="commentDate"></span></p>
+                            <p><strong>Valutazione:</strong> <span id="commentRating"></span></p>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="comment-content">
+                        <h6><i class="ri-quote-text"></i> Commento:</h6>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <p id="commentText" class="mb-0"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Chiudi</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Wrapper End-->
     <footer class="iq-footer">
@@ -433,6 +491,7 @@
             }
         }
 
+
         window.rejectReturn = function (requestId) {
             if (confirm('Are you sure you want to reject this return? The loan will remain active.')) {
                 $.post('/reject_return/' + requestId, function (response) {
@@ -447,6 +506,71 @@
                     console.error('Error:', xhr.responseText);
                 });
             }
+        }
+        function showCommentModal(loanId) {
+            // Chiamata AJAX per ottenere i dettagli del commento
+            $.ajax({
+                url: `/get_loan_comment_details/${loanId}`,
+                type: 'GET',
+                success: function (response) {
+                    if (response.status === 'success' && response.comment) {
+                        const comment = response.comment;
+
+                        // Popola il modal con i dati del commento
+                        $('#commentProductName').text(response.product_name);
+                        $('#commentBorrowerName').text(comment.borrower_name);
+                        $('#commentDate').text(comment.created_at);
+                        $('#commentText').text(comment.comment_text);
+
+                        // Gestisci la valutazione
+                        if (comment.rating) {
+                            let stars = '';
+                            for (let i = 1; i <= 5; i++) {
+                                if (i <= comment.rating) {
+                                    stars += '<i class="ri-star-fill text-warning"></i>';
+                                } else {
+                                    stars += '<i class="ri-star-line text-muted"></i>';
+                                }
+                            }
+                            $('#commentRating').html(stars + ` <small>(${comment.rating}/5)</small>`);
+                        } else {
+                            $('#commentRating').text('Nessuna valutazione');
+                        }
+
+                        // Mostra il modal
+                        $('#commentModal').modal('show');
+                    } else {
+                        alert('Errore nel caricamento del commento: ' + (response.message || 'Commento non trovato'));
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.log('Error:', error);
+                    alert('Errore nel caricamento del commento.');
+                }
+            });
+        }
+        function showOrderDetails(orderId) {
+            $.ajax({
+                url: `/get_loan_details/${orderId}`,
+                type: 'GET',
+                success: function (response) {
+                    $('#modalProductName').text(response.product_name);
+                    $('#modalQuantity').text(response.quantity);
+                    $('#modalStartDate').text(response.start_date);
+                    $('#modalEndDate').text(response.end_date);
+                    $('#modalLocation').text(response.location);
+                    $('#modalDescription').text(response.description);
+                    $('#modalManagers').empty();
+                    response.managers.forEach(function (manager) {
+                        $('#modalManagers').append(`${manager.name} ${manager.surname} (${manager.email})<br>`);
+                    });
+                    $('#orderDetailsModal').modal('show');
+                },
+                error: function (error) {
+                    console.log(error);
+                    alert('Failed to fetch order details.');
+                }
+            });
         }
     </script>
     <!-- app JavaScript -->
